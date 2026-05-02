@@ -1,10 +1,40 @@
 {
   "events": [
-    { "month": "May", "day": "2",  "name": "Autism Awareness Pop-Up",       "meta": "8642 W Colfax Ave · 11am–3pm" },
-    { "month": "May", "day": "5",  "name": "Skyview Elementary",             "meta": "Teacher Appreciation Week" },
-    { "month": "May", "day": "6",  "name": "Mountain Range High School",     "meta": "Teacher Appreciation" },
-    { "month": "May", "day": "12", "name": "National Jewish Health",         "meta": "Nurse Appreciation Day" },
-    { "month": "May", "day": "15", "name": "Northridge Pilates Event",       "meta": "19300 Lemarsh St" },
-    { "month": "May", "day": "31", "name": "People & Produce Farmers Market","meta": "4910 S Newport St · 9am–1pm" }
+    {
+      "month": "May",
+      "day": "2",
+      "name": "Autism Awareness Pop-Up",
+      "meta": "8642 W Colfax Ave · 11am–3pm"
+    },
+    {
+      "month": "May",
+      "day": "5",
+      "name": "Skyview Elementary",
+      "meta": "Teacher Appreciation Week"
+    },
+    {
+      "month": "May",
+      "day": "6",
+      "name": "Mountain Range HS",
+      "meta": "Teacher Appreciation"
+    },
+    {
+      "month": "May",
+      "day": "12",
+      "name": "National Jewish Health",
+      "meta": "Nurse Appreciation Day"
+    },
+    {
+      "month": "May",
+      "day": "15",
+      "name": "Northridge Pilates Event",
+      "meta": "19300 Lemarsh St"
+    },
+    {
+      "month": "May",
+      "day": "31",
+      "name": "People & Produce Farmers Market",
+      "meta": "4910 S Newport St · 9am–1pm"
+    }
   ]
 }
