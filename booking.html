@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Book Mile High Sips — Event Inquiry</title>
+<meta name="description" content="Request a quote for Mile High Sips at your next Denver event — birthdays, weddings, schools, corporate, and more." />
+<link rel="canonical" href="https://milehighsips.com/booking.html" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <img class="brand-logo" src="assets/logo.png?v=2" alt="Mile High Sips logo" />
+      <span class="brand-name">Mile High Sips</span>
+    </a>
+    <a href="index.html" style="font-size:0.9rem; color: var(--ink-75);">← Back to home</a>
+  </div>
+</header>
+
+<section class="hero" style="padding: 50px 0 30px;">
+  <div class="container center">
+    <p class="eyebrow">Event Inquiry</p>
+    <h1 style="font-family:'Fredoka',sans-serif; color: var(--pink); font-size: clamp(2.2rem, 5vw, 3.6rem); margin: 14px 0 0;">Let's Plan Your Pop-Up</h1>
+    <p class="sub" style="max-width: 540px; margin-left:auto; margin-right:auto;">Fill out the form below and we'll get back within 24 hours with a custom quote.</p>
+  </div>
+</section>
+
+<section style="padding: 20px 0 80px;">
+  <div class="container" style="max-width: 760px;">
+    <form name="booking" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks.html" class="form-wrap">
+      <input type="hidden" name="form-name" value="booking" />
+      <p class="honeypot"><label>Don't fill this out: <input name="bot-field" /></label></p>
+
+      <div class="form-row">
+        <div>
+          <label class="field-label req" for="name">Your name</label>
+          <input id="name" name="name" type="text" required class="field" placeholder="Jane Smith" />
+        </div>
+        <div>
+          <label class="field-label req" for="email">Email</label>
+          <input id="email" name="email" type="email" required class="field" placeholder="you@example.com" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label class="field-label" for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" class="field" placeholder="(303) 555-0123" />
+        </div>
+        <div>
+          <label class="field-label req" for="event-type">Event type</label>
+          <select id="event-type" name="event_type" required class="field">
+            <option value="">Select one…</option>
+            <option>Birthday / Party</option>
+            <option>Wedding / Shower</option>
+            <option>Teacher / Nurse Appreciation</option>
+            <option>School Event</option>
+            <option>Corporate / Office</option>
+            <option>Fitness / Studio Pop-Up</option>
+            <option>Market / Vendor Fair</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label class="field-label req" for="event-date">Event date</label>
+          <input id="event-date" name="event_date" type="date" required class="field" />
+        </div>
+        <div>
+          <label class="field-label" for="event-time">Event time</label>
+          <input id="event-time" name="event_time" type="text" class="field" placeholder="e.g. 11am–3pm" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label class="field-label req" for="location">Event location</label>
+          <input id="location" name="location" type="text" required class="field" placeholder="City or address" />
+        </div>
+        <div>
+          <label class="field-label req" for="headcount">Approx. headcount</label>
+          <input id="headcount" name="headcount" type="number" min="1" required class="field" placeholder="e.g. 75" />
+        </div>
+      </div>
+
+      <div class="form-row single">
+        <div>
+          <label class="field-label" for="details">Tell us about your event</label>
+          <textarea id="details" name="details" rows="5" class="field" placeholder="Theme, vibe, signature drink ideas, indoor/outdoor, anything else we should know…"></textarea>
+        </div>
+      </div>
+
+      <div class="form-row single">
+        <div>
+          <p class="field-label">How did you hear about us?</p>
+          <div class="radio-group">
+            <label><input type="radio" name="referral" value="Instagram" /> Instagram</label>
+            <label><input type="radio" name="referral" value="Friend" /> Friend / Word of Mouth</label>
+            <label><input type="radio" name="referral" value="Saw at event" /> Saw at an event</label>
+            <label><input type="radio" name="referral" value="Google" /> Google</label>
+            <label><input type="radio" name="referral" value="Other" /> Other</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-foot">
+        <p class="note">We'll respond within 24 hours.</p>
+        <button type="submit" class="btn btn-primary">Send Inquiry ✈</button>
+      </div>
+    </form>
+
+    <p style="margin-top: 28px; text-align: center; font-size: 0.9rem; color: var(--ink-75);">
+      Prefer email? Reach us at <a href="mailto:milehighsipscrew@gmail.com" style="color: var(--pink); font-weight: 600;">milehighsipscrew@gmail.com</a>
+    </p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="copyright">© <span id="yr"></span> Mile High Sips · Denver, CO</div>
+    <div class="footer-links">
+      <a href="https://instagram.com/milehighsips" target="_blank" rel="noopener">Instagram</a>
+      <a href="index.html">Home</a>
+    </div>
+  </div>
+</footer>
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+
+</body>
+</html>

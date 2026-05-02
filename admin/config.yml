@@ -1,0 +1,24 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: assets
+public_folder: assets
+
+collections:
+  - name: schedule
+    label: Schedule
+    files:
+      - label: Upcoming Pop-Ups
+        name: schedule
+        file: schedule.json
+        fields:
+          - label: Events
+            name: events
+            widget: list
+            summary: "{{fields.month}} {{fields.day}} — {{fields.name}}"
+            fields:
+              - { label: Month, name: month, widget: string, hint: "e.g. June" }
+              - { label: Day,   name: day,   widget: string, hint: "e.g. 14" }
+              - { label: Event Name, name: name, widget: string }
+              - { label: Details,   name: meta, widget: string, hint: "Location · Time, or just a note" }

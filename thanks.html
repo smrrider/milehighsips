@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thanks for booking — Mile High Sips</title>
+<meta name="robots" content="noindex" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    mhs: { pink:'#E85A8C', blush:'#F4B6C9', cream:'#FBF4E8', sky:'#A8D4E8', teal:'#1F4E5A', ink:'#2A3F5C' }
+  }, fontFamily: { display:['Fredoka','sans-serif'], body:['Inter','sans-serif'] },
+     boxShadow: { soft: '0 10px 30px -10px rgba(232,90,140,0.25)' } } } }
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; color:#2A3F5C; background:#FBF4E8; }
+  .display { font-family: 'Fredoka', sans-serif; }
+  .cloud-bg {
+    background:
+      radial-gradient(900px 380px at 15% 0%, rgba(168,212,232,0.55), transparent 60%),
+      radial-gradient(900px 420px at 85% 10%, rgba(244,182,201,0.55), transparent 60%),
+      #FBF4E8;
+  }
+  .takeoff { animation: takeoff 3.5s ease-out infinite; }
+  @keyframes takeoff {
+    0%   { transform: translate(-30px, 30px) rotate(-10deg); opacity: 0; }
+    20%  { opacity: 1; }
+    100% { transform: translate(80px, -80px) rotate(-20deg); opacity: 0; }
+  }
+</style>
+</head>
+
+<body class="cloud-bg min-h-screen flex flex-col">
+
+<main class="flex-1 flex items-center justify-center px-5 py-16">
+  <div class="bg-white rounded-[2.5rem] shadow-soft border border-mhs-blush/40 p-10 md:p-14 max-w-xl text-center relative overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none">
+      <svg class="takeoff absolute bottom-10 left-10 w-12 h-12" viewBox="0 0 64 64">
+        <path d="M10 38 L52 22 L48 32 L26 38 L20 22 L16 24 L18 36 L10 36 Z" fill="#E85A8C"/>
+      </svg>
+    </div>
+
+    <div class="display text-mhs-pink text-6xl">✈</div>
+    <h1 class="display text-4xl md:text-5xl text-mhs-pink mt-3">You're Cleared for Takeoff!</h1>
+    <p class="mt-4 text-mhs-ink/80">
+      Thanks for reaching out. We've received your inquiry and will reply within 24 hours with a custom quote.
+    </p>
+    <p class="mt-2 text-sm text-mhs-ink/60">
+      Check your spam folder if you don't see anything from <span class="font-semibold">milehighsipscrew@gmail.com</span>.
+    </p>
+
+    <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="index.html" class="bg-mhs-pink text-white px-6 py-3 rounded-full font-semibold shadow-soft hover:brightness-110">Back to Home</a>
+      <a href="https://instagram.com/milehighsips" target="_blank" rel="noopener" class="bg-white text-mhs-pink border border-mhs-blush px-6 py-3 rounded-full font-semibold hover:bg-mhs-blush/20">Follow on Instagram</a>
+    </div>
+  </div>
+</main>
+
+<footer class="text-center text-xs text-mhs-ink/50 pb-6">© <span id="yr"></span> Mile High Sips · Denver, CO</footer>
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
