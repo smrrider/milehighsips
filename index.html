@@ -116,69 +116,20 @@
     <div class="menu-head">
       <p class="eyebrow">The Menu</p>
       <h2 class="pink">Dirty Sodas</h2>
-      <p class="sub price"><span style="font-weight:700;">Dirty Soda $6.00</span> · Create Your Own $5.00 + $0.25 per topping</p>
+      <p class="sub price"><span style="font-weight:700;" id="menu-dirty-price">Dirty Soda $6.00</span> · Create Your Own <span id="menu-cyo-price">$5.00 + $0.25 per topping</span></p>
     </div>
 
-    <div class="menu-grid">
-      <div class="menu-card"><h3>Jumpseat Gossip</h3><p>Coke, vanilla syrup, lime syrup, coconut creme, half &amp; half</p></div>
-      <div class="menu-card"><h3>Island First Class</h3><p>Sprite, coconut syrup, vanilla syrup, lime syrup, vanilla cold foam</p></div>
-      <div class="menu-card"><h3>Cruising Altitude</h3><p>Coke, grenadine, raspberry syrup, vanilla cold foam</p></div>
-      <div class="menu-card"><h3>The Safety Demo Spritz</h3><p>Sprite, strawberry syrup, grenadine, vanilla cold foam</p></div>
-      <div class="menu-card"><h3>Sky Princess</h3><p>Coke Zero, SF peach syrup, SF vanilla syrup, half &amp; half</p></div>
-      <div class="menu-card"><h3>Jet Stream Splash</h3><p>Sprite, coconut syrup, splash of pineapple juice, half &amp; half</p></div>
-      <div class="menu-card"><h3>Red-Eye Refresher</h3><p>Dr Pepper, raspberry syrup, vanilla syrup, half &amp; half</p></div>
-      <div class="menu-card"><h3>Clear Skies</h3><p>Sprite, blue raspberry syrup, coconut creme, vanilla cold foam</p></div>
-      <div class="menu-card" data-drink-img="assets/milehigh.png" data-drink-caption="Mile High Sweetheart">
-        <h3>Mile High Sweetheart</h3>
-        <p>Dr Pepper, grenadine, coconut creme, coconut syrup, vanilla cold foam</p>
-        <span class="sig-hint">📷 Tap to see the drink</span>
-        <div class="sig-preview" aria-hidden="true">
-          <img src="assets/milehigh.png" alt="Mile High Sweetheart dirty soda" />
-        </div>
-      </div>
-      <div class="menu-card"><h3>Jet Lag Juice</h3><p>Pink Alani slush <span class="upcharge">(+$2)</span>, vanilla syrup, grenadine, coconut creme</p></div>
-      <div class="menu-card"><h3>Frequent Flyer</h3><p>Dr Pepper, strawberry syrup, vanilla syrup, half &amp; half, vanilla cold foam</p></div>
-      <div class="menu-card signature" id="sig-card" data-drink-img="assets/signature.png" data-drink-caption="Cloud Nine ☁︎ — Our Signature Dirty Soda">
-        <span class="signature-tag">Signature</span>
-        <h3>Cloud Nine ☁︎</h3>
-        <p>Sprite, blue raspberry syrup, vanilla syrup, half &amp; half, cotton candy cold foam, topped with a "cloud."</p>
-        <span class="sig-hint">📷 Tap to see the drink</span>
-        <div class="sig-preview" aria-hidden="true">
-          <img src="assets/signature.png" alt="Cloud Nine signature dirty soda" />
-        </div>
-      </div>
-      <div class="menu-card"><h3>Layover Luxury Latte</h3><p>Cream soda, french vanilla syrup, coconut syrup, half &amp; half</p></div>
-      <div class="menu-card"><h3>The Pink Plane Club</h3><p>Cream soda, strawberry syrup, vanilla cold foam</p></div>
-      <div class="menu-card full"><h3>Paradise Layover</h3><p>Cream soda, peach syrup, blue raspberry syrup, coconut creme</p></div>
-    </div>
+    <div class="menu-grid" id="menu-grid"></div>
 
     <div class="cyo">
       <div class="cyo-head">
         <h3>Create Your Own</h3>
-        <p class="sub">$5.00 + $0.25 per topping</p>
+        <p class="sub" id="cyo-price">$5.00 + $0.25 per topping</p>
       </div>
       <div class="cyo-grid">
-        <div class="cyo-col cyo-bases">
-          <h4>Bases</h4>
-          <ul>
-            <li>Coke</li><li>Coke Zero</li><li>Sprite</li><li>Dr Pepper</li><li>Cream Soda</li>
-            <li>Pink Slush Alani <span class="upcharge">(+$2)</span></li>
-          </ul>
-        </div>
-        <div class="cyo-col cyo-syrups">
-          <h4>Syrups</h4>
-          <ul>
-            <li>Strawberry</li><li>Grenadine</li><li>Vanilla</li><li>French Vanilla</li>
-            <li>Blue Raspberry</li><li>Peach</li><li>Coconut</li><li>Lime</li>
-          </ul>
-        </div>
-        <div class="cyo-col cyo-addons">
-          <h4>Add-Ons</h4>
-          <ul>
-            <li>Half &amp; Half</li><li>Coconut Creme</li><li>Vanilla Cold Foam</li>
-            <li>Cotton Candy Cold Foam</li><li>Pineapple Juice</li>
-          </ul>
-        </div>
+        <div class="cyo-col cyo-bases">  <h4>Bases</h4>  <ul id="cyo-bases-list"></ul></div>
+        <div class="cyo-col cyo-syrups"> <h4>Syrups</h4> <ul id="cyo-syrups-list"></ul></div>
+        <div class="cyo-col cyo-addons"> <h4>Add-Ons</h4><ul id="cyo-addons-list"></ul></div>
       </div>
     </div>
   </div>
@@ -213,18 +164,7 @@
       <p class="eyebrow">FAQ</p>
       <h2>Pre-Flight Check</h2>
     </div>
-    <div class="faq-list">
-      <details><summary>How far in advance should I book? <span class="plus">+</span></summary>
-        <p>We recommend booking 2–4 weeks out for weekend events. Smaller weekday events often have shorter lead times — just ask.</p></details>
-      <details><summary>Where do you serve? <span class="plus">+</span></summary>
-        <p>All over the Denver metro and Front Range. Travel fees may apply outside a 25-mile radius.</p></details>
-      <details><summary>What does pricing look like? <span class="plus">+</span></summary>
-        <p>We offer per-drink pricing for open events and flat-rate packages for private parties. Send us your event details for a custom quote.</p></details>
-      <details><summary>How much space do you need? <span class="plus">+</span></summary>
-        <p>An 8x8 ft space works great. We bring our own tables, signage, and ice — just point us to an outlet if it's available.</p></details>
-      <details><summary>Can you customize the menu? <span class="plus">+</span></summary>
-        <p>Absolutely — themed drinks, signature names, sugar-free options, even color-matched cold foams. It's our favorite part.</p></details>
-    </div>
+    <div class="faq-list" id="faq-list"></div>
   </div>
 </section>
 
@@ -261,25 +201,10 @@
   if (window.netlifyIdentity) {
     window.netlifyIdentity.on('init', function(user) {
       if (!user) {
-        window.netlifyIdentity.on('login', function() {
-          document.location.href = '/admin/';
-        });
+        window.netlifyIdentity.on('login', function() { document.location.href = '/admin/'; });
       }
     });
   }
-</script>
-<script>
-  fetch('schedule.json')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var grid = document.getElementById('schedule-grid');
-      grid.innerHTML = data.events.map(function(ev) {
-        return '<div class="ticket">' +
-          '<div class="date"><div class="m">' + ev.month + '</div><div class="d">' + ev.day + '</div></div>' +
-          '<div class="info"><div class="name">' + ev.name + '</div><div class="meta">' + ev.meta + '</div></div>' +
-          '</div>';
-      }).join('');
-    });
 </script>
 
 <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Drink photo">
@@ -296,24 +221,66 @@
   var lbImg = document.getElementById('lightbox-img');
   var lbCap = document.getElementById('lightbox-caption');
 
-  document.querySelectorAll('[data-drink-img]').forEach(function (card) {
-    card.addEventListener('click', function () {
-      lbImg.src          = card.dataset.drinkImg;
-      lbImg.alt          = card.dataset.drinkCaption || '';
-      lbCap.textContent  = card.dataset.drinkCaption || '';
-      lb.classList.add('open');
-    });
-  });
-
   lb.addEventListener('click', function (e) {
-    if (e.target === lb || e.target.classList.contains('lightbox-close')) {
-      lb.classList.remove('open');
-    }
+    if (e.target === lb || e.target.classList.contains('lightbox-close')) lb.classList.remove('open');
   });
-
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') lb.classList.remove('open');
   });
+
+  function initLightboxCards() {
+    document.querySelectorAll('[data-drink-img]').forEach(function (card) {
+      card.addEventListener('click', function () {
+        lbImg.src         = card.dataset.drinkImg;
+        lbImg.alt         = card.dataset.drinkCaption || '';
+        lbCap.textContent = card.dataset.drinkCaption || '';
+        lb.classList.add('open');
+      });
+    });
+  }
+
+  function upcharge(str) {
+    return str.replace(/(\(\+\$[^)]+\))/g, '<span class="upcharge">$1</span>');
+  }
+
+  function listItems(arr) {
+    return arr.map(function(i) { return '<li>' + upcharge(i) + '</li>'; }).join('');
+  }
+
+  fetch('schedule.json').then(function(r){return r.json();}).then(function(data){
+    document.getElementById('schedule-grid').innerHTML = data.events.map(function(ev) {
+      return '<div class="ticket"><div class="date"><div class="m">' + ev.month + '</div><div class="d">' + ev.day + '</div></div>' +
+        '<div class="info"><div class="name">' + ev.name + '</div><div class="meta">' + ev.meta + '</div></div></div>';
+    }).join('');
+  });
+
+  fetch('menu.json').then(function(r){return r.json();}).then(function(data){
+    document.getElementById('menu-dirty-price').textContent = 'Dirty Soda ' + data.dirty_soda_price;
+    document.getElementById('menu-cyo-price').textContent   = data.cyo_price_base + ' + ' + data.cyo_price_topping + ' per topping';
+    document.getElementById('cyo-price').textContent        = data.cyo_price_base + ' + ' + data.cyo_price_topping + ' per topping';
+    document.getElementById('cyo-bases-list').innerHTML  = listItems(data.cyo_bases);
+    document.getElementById('cyo-syrups-list').innerHTML = listItems(data.cyo_syrups);
+    document.getElementById('cyo-addons-list').innerHTML = listItems(data.cyo_addons);
+    document.getElementById('menu-grid').innerHTML = data.drinks.map(function(d) {
+      var cls   = 'menu-card' + (d.signature ? ' signature' : '') + (d.full_width ? ' full' : '');
+      var attrs = d.drink_image ? ' data-drink-img="' + d.drink_image + '" data-drink-caption="' + d.name + '"' : '';
+      var html  = d.signature ? '<span class="signature-tag">Signature</span>' : '';
+      html += '<h3>' + d.name + '</h3><p>' + upcharge(d.description) + '</p>';
+      if (d.drink_image) {
+        html += '<span class="sig-hint">📷 Tap to see the drink</span>';
+        html += '<div class="sig-preview" aria-hidden="true"><img src="' + d.drink_image + '" alt="' + d.name + '"/></div>';
+      }
+      return '<div class="' + cls + '"' + attrs + '>' + html + '</div>';
+    }).join('');
+    initLightboxCards();
+  });
+
+  fetch('faq.json').then(function(r){return r.json();}).then(function(data){
+    document.getElementById('faq-list').innerHTML = data.faqs.map(function(f) {
+      return '<details><summary>' + f.question + ' <span class="plus">+</span></summary><p>' + f.answer + '</p></details>';
+    }).join('');
+  });
+
 }());
 </script>
 

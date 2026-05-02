@@ -1,0 +1,24 @@
+{
+  "faqs": [
+    {
+      "question": "How far in advance should I book?",
+      "answer": "We recommend booking 2–4 weeks out for weekend events. Smaller weekday events often have shorter lead times — just ask."
+    },
+    {
+      "question": "Where do you serve?",
+      "answer": "All over the Denver metro and Front Range. Travel fees may apply outside a 25-mile radius."
+    },
+    {
+      "question": "What does pricing look like?",
+      "answer": "We offer per-drink pricing for open events and flat-rate packages for private parties. Send us your event details for a custom quote."
+    },
+    {
+      "question": "How much space do you need?",
+      "answer": "An 8x8 ft space works great. We bring our own tables, signage, and ice — just point us to an outlet if it's available."
+    },
+    {
+      "question": "Can you customize the menu?",
+      "answer": "Absolutely — themed drinks, signature names, sugar-free options, even color-matched cold foams. It's our favorite part."
+    }
+  ]
+}

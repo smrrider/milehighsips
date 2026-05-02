@@ -1,0 +1,25 @@
+{
+  "dirty_soda_price": "$6.00",
+  "cyo_price_base": "$5.00",
+  "cyo_price_topping": "$0.25",
+  "drinks": [
+    { "name": "Jumpseat Gossip",       "description": "Coke, vanilla syrup, lime syrup, coconut creme, half & half" },
+    { "name": "Island First Class",    "description": "Sprite, coconut syrup, vanilla syrup, lime syrup, vanilla cold foam" },
+    { "name": "Cruising Altitude",     "description": "Coke, grenadine, raspberry syrup, vanilla cold foam" },
+    { "name": "The Safety Demo Spritz","description": "Sprite, strawberry syrup, grenadine, vanilla cold foam" },
+    { "name": "Sky Princess",          "description": "Coke Zero, SF peach syrup, SF vanilla syrup, half & half" },
+    { "name": "Jet Stream Splash",     "description": "Sprite, coconut syrup, splash of pineapple juice, half & half" },
+    { "name": "Red-Eye Refresher",     "description": "Dr Pepper, raspberry syrup, vanilla syrup, half & half" },
+    { "name": "Clear Skies",           "description": "Sprite, blue raspberry syrup, coconut creme, vanilla cold foam" },
+    { "name": "Mile High Sweetheart",  "description": "Dr Pepper, grenadine, coconut creme, coconut syrup, vanilla cold foam", "drink_image": "assets/milehigh.png" },
+    { "name": "Jet Lag Juice",         "description": "Pink Alani slush (+$2), vanilla syrup, grenadine, coconut creme" },
+    { "name": "Frequent Flyer",        "description": "Dr Pepper, strawberry syrup, vanilla syrup, half & half, vanilla cold foam" },
+    { "name": "Cloud Nine ☁︎",         "description": "Sprite, blue raspberry syrup, vanilla syrup, half & half, cotton candy cold foam, topped with a \"cloud.\"", "signature": true, "drink_image": "assets/signature.png" },
+    { "name": "Layover Luxury Latte",  "description": "Cream soda, french vanilla syrup, coconut syrup, half & half" },
+    { "name": "The Pink Plane Club",   "description": "Cream soda, strawberry syrup, vanilla cold foam" },
+    { "name": "Paradise Layover",      "description": "Cream soda, peach syrup, blue raspberry syrup, coconut creme", "full_width": true }
+  ],
+  "cyo_bases":  ["Coke", "Coke Zero", "Sprite", "Dr Pepper", "Cream Soda", "Pink Slush Alani (+$2)"],
+  "cyo_syrups": ["Strawberry", "Grenadine", "Vanilla", "French Vanilla", "Blue Raspberry", "Peach", "Coconut", "Lime"],
+  "cyo_addons": ["Half & Half", "Coconut Creme", "Vanilla Cold Foam", "Cotton Candy Cold Foam", "Pineapple Juice"]
+}

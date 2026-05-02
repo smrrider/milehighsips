@@ -6,6 +6,7 @@ media_folder: assets
 public_folder: assets
 
 collections:
+
   - name: schedule
     label: Schedule
     files:
@@ -18,7 +19,55 @@ collections:
             widget: list
             summary: "{{fields.month}} {{fields.day}} — {{fields.name}}"
             fields:
-              - { label: Month, name: month, widget: string, hint: "e.g. June" }
-              - { label: Day,   name: day,   widget: string, hint: "e.g. 14" }
-              - { label: Event Name, name: name, widget: string }
-              - { label: Details,   name: meta, widget: string, hint: "Location · Time, or just a note" }
+              - { label: Month,      name: month, widget: string, hint: "e.g. June" }
+              - { label: Day,        name: day,   widget: string, hint: "e.g. 14" }
+              - { label: Event Name, name: name,  widget: string }
+              - { label: Details,    name: meta,  widget: string, hint: "Location · Time, or just a note" }
+
+  - name: menu
+    label: Menu
+    files:
+      - label: Drinks & Pricing
+        name: menu
+        file: menu.json
+        fields:
+          - { label: "Dirty Soda Price", name: dirty_soda_price, widget: string, hint: "e.g. $6.00" }
+          - { label: "Create Your Own — Base Price", name: cyo_price_base,    widget: string, hint: "e.g. $5.00" }
+          - { label: "Create Your Own — Per Topping", name: cyo_price_topping, widget: string, hint: "e.g. $0.25" }
+          - label: Drinks
+            name: drinks
+            widget: list
+            summary: "{{fields.name}}"
+            fields:
+              - { label: "Drink Name",   name: name,        widget: string }
+              - { label: "Description",  name: description, widget: text }
+              - { label: "Signature Drink", name: signature,  widget: boolean, default: false, required: false }
+              - { label: "Full-Width Card", name: full_width, widget: boolean, default: false, required: false, hint: "Spans both columns — use for the last item" }
+              - { label: "Drink Photo",  name: drink_image, widget: image,   required: false, hint: "Optional — shows hover preview and lightbox" }
+          - label: "CYO Bases"
+            name: cyo_bases
+            widget: list
+            field: { label: Base, name: base, widget: string }
+          - label: "CYO Syrups"
+            name: cyo_syrups
+            widget: list
+            field: { label: Syrup, name: syrup, widget: string }
+          - label: "CYO Add-Ons"
+            name: cyo_addons
+            widget: list
+            field: { label: Add-On, name: addon, widget: string }
+
+  - name: faq
+    label: FAQ
+    files:
+      - label: Frequently Asked Questions
+        name: faq
+        file: faq.json
+        fields:
+          - label: FAQs
+            name: faqs
+            widget: list
+            summary: "{{fields.question}}"
+            fields:
+              - { label: Question, name: question, widget: string }
+              - { label: Answer,   name: answer,   widget: text }
