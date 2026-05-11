@@ -304,6 +304,49 @@ section .sub { margin-top: 14px; color: var(--ink-75); font-size: 1.05rem; }
 .sched-foot { margin-top: 30px; color: rgba(255,255,255,0.7); font-size: 0.88rem; position: relative; }
 .sched-foot a { color: #fff; text-decoration: underline; }
 
+/* Past Pop-Ups subsection */
+.sched-subhead {
+  margin: 56px 0 0;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+  color: #fff;
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+}
+.sched-subhead::after {
+  content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.18);
+}
+.sched-grid-past { margin-top: 20px; }
+.ticket.past {
+  background: rgba(255,255,255,0.92);
+  opacity: 0.92;
+}
+.ticket.past .date {
+  background: rgba(232,90,140,0.55);
+}
+.ticket.has-gallery {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+.ticket.has-gallery:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0,0,0,0.22);
+}
+.ticket .recap-hint {
+  display: inline-block; margin-top: 6px;
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--pink);
+}
+.ticket .ig-inline {
+  display: inline-block; margin-top: 6px;
+  font-size: 0.78rem; color: var(--pink); font-weight: 600;
+  text-decoration: underline;
+}
+.ticket .info { flex: 1; min-width: 0; }
+.ticket .info .name { overflow-wrap: anywhere; }
+
 /* ====== FAQ ====== */
 .faq { background: #fff; }
 .faq-list { max-width: 680px; margin: 40px auto 0; }
@@ -422,24 +465,69 @@ textarea.field { resize: vertical; min-height: 100px; }
 .lightbox.open { opacity: 1; pointer-events: all; }
 
 .lightbox-content {
-  position: relative; text-align: center; max-width: 440px; width: 100%;
+  position: relative; text-align: center; max-width: 560px; width: 100%;
 }
 .lightbox-content img {
-  width: 100%; border-radius: 24px;
+  width: 100%; max-height: 70vh; object-fit: contain;
+  border-radius: 24px;
   box-shadow: 0 40px 100px rgba(0,0,0,0.5); display: block;
+  background: rgba(0,0,0,0.15);
 }
 .lightbox-caption {
-  margin-top: 16px; color: rgba(255,255,255,0.85);
+  margin-top: 16px; color: rgba(255,255,255,0.92);
   font-family: 'Fredoka', sans-serif; font-size: 1.2rem;
 }
+.lightbox-recap {
+  margin: 8px auto 0; max-width: 480px;
+  color: #fff; font-size: 0.92rem; line-height: 1.5;
+}
+.lightbox-ig {
+  display: none; margin-top: 14px;
+  color: #fff; font-weight: 600; font-size: 0.88rem;
+  border: 1px solid rgba(255,255,255,0.4); border-radius: 999px;
+  padding: 8px 16px; transition: background 0.2s;
+}
+.lightbox-ig.show { display: inline-block; }
+.lightbox-ig:hover { background: rgba(255,255,255,0.15); }
 .lightbox-close {
   position: absolute; top: -48px; right: 0;
   background: rgba(255,255,255,0.15); border: none; color: #fff;
   font-size: 1.2rem; width: 38px; height: 38px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: background 0.2s;
+  z-index: 2;
 }
 .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+
+.lightbox-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.15); border: none; color: #fff;
+  font-size: 1.6rem; width: 44px; height: 44px; border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s;
+  z-index: 2;
+}
+.lightbox-nav:hover { background: rgba(255,255,255,0.3); }
+.lightbox-prev { left: -56px; }
+.lightbox-next { right: -56px; }
+.lightbox.multi .lightbox-nav { display: flex; }
+@media (max-width: 720px) {
+  .lightbox-prev { left: 8px; }
+  .lightbox-next { right: 8px; }
+}
+
+.lightbox-dots {
+  display: none; justify-content: center; gap: 6px;
+  margin-top: 12px;
+}
+.lightbox.multi .lightbox-dots { display: flex; }
+.lightbox-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transition: background 0.2s, transform 0.2s;
+  border: none; padding: 0; cursor: pointer;
+}
+.lightbox-dot.active { background: #fff; transform: scale(1.2); }
 
 /* ====== THANKS PAGE ====== */
 .thanks-bg {

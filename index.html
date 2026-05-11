@@ -154,6 +154,9 @@
 
     <div class="sched-grid" id="schedule-grid"></div>
 
+    <h3 class="sched-subhead" id="schedule-past-head" style="display:none;">Past Pop-Ups</h3>
+    <div class="sched-grid sched-grid-past" id="schedule-past-grid"></div>
+
     <p class="sched-foot">Schedule updated monthly. Follow <a href="https://instagram.com/milehighsips" target="_blank" rel="noopener">@milehighsips</a> for live updates.</p>
   </div>
 </section>
@@ -207,34 +210,107 @@
   }
 </script>
 
-<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Drink photo">
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
   <button class="lightbox-close" aria-label="Close">&#x2715;</button>
   <div class="lightbox-content">
+    <button class="lightbox-nav lightbox-prev" aria-label="Previous photo">&#x2039;</button>
+    <button class="lightbox-nav lightbox-next" aria-label="Next photo">&#x203A;</button>
     <img id="lightbox-img" src="" alt="" />
+    <div class="lightbox-dots" id="lightbox-dots"></div>
     <p class="lightbox-caption" id="lightbox-caption"></p>
+    <p class="lightbox-recap" id="lightbox-recap"></p>
+    <a class="lightbox-ig" id="lightbox-ig" href="" target="_blank" rel="noopener">See more on Instagram →</a>
   </div>
 </div>
 
 <script>
 (function () {
-  var lb    = document.getElementById('lightbox');
-  var lbImg = document.getElementById('lightbox-img');
-  var lbCap = document.getElementById('lightbox-caption');
+  var lb     = document.getElementById('lightbox');
+  var lbImg  = document.getElementById('lightbox-img');
+  var lbCap  = document.getElementById('lightbox-caption');
+  var lbRec  = document.getElementById('lightbox-recap');
+  var lbIg   = document.getElementById('lightbox-ig');
+  var lbDots = document.getElementById('lightbox-dots');
+  var lbPrev = lb.querySelector('.lightbox-prev');
+  var lbNext = lb.querySelector('.lightbox-next');
+
+  var lbImages  = [];
+  var lbIndex   = 0;
+  var lbCaption = '';
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  function escapeAttr(s) { return escapeHtml(s); }
+
+  function renderLbImage() {
+    if (!lbImages.length) return;
+    lbImg.src = lbImages[lbIndex];
+    lbImg.alt = lbCaption + ' — photo ' + (lbIndex + 1);
+    Array.prototype.forEach.call(lbDots.children, function(dot, i){
+      dot.classList.toggle('active', i === lbIndex);
+    });
+  }
+
+  function openLightbox(opts) {
+    lbImages  = (opts.images && opts.images.length) ? opts.images.slice() : [];
+    lbCaption = opts.caption || '';
+    lbIndex   = 0;
+    if (!lbImages.length) return;
+
+    lbCap.textContent = lbCaption;
+    lbRec.textContent = opts.recap || '';
+    lbRec.style.display = opts.recap ? 'block' : 'none';
+
+    if (opts.instagram) {
+      lbIg.href = opts.instagram;
+      lbIg.classList.add('show');
+    } else {
+      lbIg.classList.remove('show');
+    }
+
+    lb.classList.toggle('multi', lbImages.length > 1);
+    lbDots.innerHTML = lbImages.map(function(_, i){
+      return '<button class="lightbox-dot" data-i="' + i + '" aria-label="Photo ' + (i+1) + '"></button>';
+    }).join('');
+
+    renderLbImage();
+    lb.classList.add('open');
+  }
+
+  function closeLightbox() { lb.classList.remove('open'); }
+  function nextImg() { if (!lbImages.length) return; lbIndex = (lbIndex + 1) % lbImages.length; renderLbImage(); }
+  function prevImg() { if (!lbImages.length) return; lbIndex = (lbIndex - 1 + lbImages.length) % lbImages.length; renderLbImage(); }
 
   lb.addEventListener('click', function (e) {
-    if (e.target === lb || e.target.classList.contains('lightbox-close')) lb.classList.remove('open');
+    if (e.target === lb || e.target.classList.contains('lightbox-close')) closeLightbox();
+  });
+  lbPrev.addEventListener('click', function(e){ e.stopPropagation(); prevImg(); });
+  lbNext.addEventListener('click', function(e){ e.stopPropagation(); nextImg(); });
+  lbDots.addEventListener('click', function(e){
+    var t = e.target.closest('.lightbox-dot');
+    if (!t) return;
+    e.stopPropagation();
+    lbIndex = parseInt(t.dataset.i, 10) || 0;
+    renderLbImage();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') lb.classList.remove('open');
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowRight') nextImg();
+    else if (e.key === 'ArrowLeft')  prevImg();
   });
 
   function initLightboxCards() {
     document.querySelectorAll('[data-drink-img]').forEach(function (card) {
       card.addEventListener('click', function () {
-        lbImg.src         = card.dataset.drinkImg;
-        lbImg.alt         = card.dataset.drinkCaption || '';
-        lbCap.textContent = card.dataset.drinkCaption || '';
-        lb.classList.add('open');
+        openLightbox({
+          images:  [card.dataset.drinkImg],
+          caption: card.dataset.drinkCaption || ''
+        });
       });
     });
   }
@@ -247,14 +323,82 @@
     return arr.map(function(i) { return '<li>' + upcharge(i) + '</li>'; }).join('');
   }
 
-  fetch('schedule.json').then(function(r){return r.json();}).then(function(data){
-    document.getElementById('schedule-grid').innerHTML = data.events.map(function(ev) {
-      return '<div class="ticket"><div class="date"><div class="m">' + ev.month + '</div><div class="d">' + ev.day + '</div></div>' +
-        '<div class="info"><div class="name">' + ev.name + '</div><div class="meta">' + ev.meta + '</div></div></div>';
-    }).join('');
+  var MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  function eventDate(ev) {
+    var monthKey = (ev.month || '').toLowerCase().slice(0,3);
+    var m = MONTHS[monthKey];
+    if (m == null) return null;
+    var y = parseInt(ev.year, 10) || new Date().getFullYear();
+    var d = parseInt(ev.day, 10) || 1;
+    return new Date(y, m, d);
+  }
+
+  function ticketHtml(ev, opts) {
+    opts = opts || {};
+    var gallery = Array.isArray(ev.gallery) ? ev.gallery.map(function(g){ return typeof g === 'string' ? g : g.img; }).filter(Boolean) : [];
+    var hasGallery = opts.past && gallery.length > 0;
+    var hasIg      = opts.past && ev.instagram;
+
+    var classes = 'ticket' + (opts.past ? ' past' : '') + (hasGallery ? ' has-gallery' : '');
+    var attrs = '';
+    if (hasGallery) {
+      attrs += ' data-gallery="'  + escapeAttr(JSON.stringify(gallery)) + '"';
+      attrs += ' data-caption="'  + escapeAttr(ev.name || '') + '"';
+      if (ev.recap)     attrs += ' data-recap="' + escapeAttr(ev.recap) + '"';
+      if (ev.instagram) attrs += ' data-ig="'    + escapeAttr(ev.instagram) + '"';
+    }
+
+    var info = '<div class="name">' + escapeHtml(ev.name) + '</div>' +
+               '<div class="meta">' + escapeHtml(ev.meta) + '</div>';
+    if (hasGallery)            info += '<span class="recap-hint">📷 View recap →</span>';
+    else if (hasIg)            info += '<a class="ig-inline" href="' + escapeAttr(ev.instagram) + '" target="_blank" rel="noopener">See on Instagram →</a>';
+
+    return '<div class="' + classes + '"' + attrs + '>' +
+             '<div class="date"><div class="m">' + escapeHtml(ev.month) + '</div><div class="d">' + escapeHtml(ev.day) + '</div></div>' +
+             '<div class="info">' + info + '</div>' +
+           '</div>';
+  }
+
+  var _v = '?v=' + (Date.now ? Date.now() : new Date().getTime());
+  fetch('schedule.json' + _v).then(function(r){return r.json();}).then(function(data){
+    var today = new Date(); today.setHours(0,0,0,0);
+
+    var upcoming = [];
+    var past     = [];
+    (data.events || []).forEach(function(ev){
+      var d = eventDate(ev);
+      if (d && d < today) past.push({ ev: ev, d: d });
+      else                upcoming.push({ ev: ev, d: d });
+    });
+
+    upcoming.sort(function(a,b){ return (a.d || 0) - (b.d || 0); });
+    past.sort(    function(a,b){ return (b.d || 0) - (a.d || 0); });
+
+    document.getElementById('schedule-grid').innerHTML =
+      upcoming.map(function(x){ return ticketHtml(x.ev, { past:false }); }).join('') ||
+      '<p class="sub" style="opacity:.85">No upcoming pop-ups on the calendar yet — follow <a href="https://instagram.com/milehighsips" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">@milehighsips</a> for announcements.</p>';
+
+    if (past.length) {
+      document.getElementById('schedule-past-head').style.display = '';
+      document.getElementById('schedule-past-grid').innerHTML =
+        past.map(function(x){ return ticketHtml(x.ev, { past:true }); }).join('');
+
+      document.querySelectorAll('.ticket.has-gallery').forEach(function(t){
+        t.addEventListener('click', function(){
+          var imgs;
+          try { imgs = JSON.parse(t.dataset.gallery || '[]'); } catch(_) { imgs = []; }
+          openLightbox({
+            images:    imgs,
+            caption:   t.dataset.caption || '',
+            recap:     t.dataset.recap || '',
+            instagram: t.dataset.ig || ''
+          });
+        });
+      });
+    }
   });
 
-  fetch('menu.json').then(function(r){return r.json();}).then(function(data){
+  fetch('menu.json' + _v).then(function(r){return r.json();}).then(function(data){
     document.getElementById('menu-dirty-price').textContent = 'Dirty Soda ' + data.dirty_soda_price;
     document.getElementById('menu-cyo-price').textContent   = data.cyo_price_base + ' + ' + data.cyo_price_topping + ' per topping';
     document.getElementById('cyo-price').textContent        = data.cyo_price_base + ' + ' + data.cyo_price_topping + ' per topping';
@@ -275,7 +419,7 @@
     initLightboxCards();
   });
 
-  fetch('faq.json').then(function(r){return r.json();}).then(function(data){
+  fetch('faq.json' + _v).then(function(r){return r.json();}).then(function(data){
     document.getElementById('faq-list').innerHTML = data.faqs.map(function(f) {
       return '<details><summary>' + f.question + ' <span class="plus">+</span></summary><p>' + f.answer + '</p></details>';
     }).join('');

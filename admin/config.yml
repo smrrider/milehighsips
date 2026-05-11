@@ -17,12 +17,22 @@ collections:
           - label: Events
             name: events
             widget: list
-            summary: "{{fields.month}} {{fields.day}} — {{fields.name}}"
+            summary: "{{fields.month}} {{fields.day}}, {{fields.year}} — {{fields.name}}"
             fields:
               - { label: Month,      name: month, widget: string, hint: "e.g. June" }
               - { label: Day,        name: day,   widget: string, hint: "e.g. 14" }
+              - { label: Year,       name: year,  widget: string, hint: "e.g. 2026 — required so past events sort correctly" }
               - { label: Event Name, name: name,  widget: string }
               - { label: Details,    name: meta,  widget: string, hint: "Location · Time, or just a note" }
+              - { label: "Recap (past events only)", name: recap, widget: text, required: false, hint: "Optional — a short note about how the event went. Shown when guests click the past event." }
+              - label: "Photos (past events only)"
+                name: gallery
+                widget: list
+                required: false
+                summary: "{{fields.img}}"
+                hint: "Optional — upload event photos. Past events with photos become clickable on the site."
+                field: { label: Photo, name: img, widget: image }
+              - { label: "Instagram Post URL", name: instagram, widget: string, required: false, hint: "Optional — link to the IG post recap. Shown alongside the photo gallery." }
 
   - name: menu
     label: Menu
