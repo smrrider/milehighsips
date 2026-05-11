@@ -10,7 +10,7 @@ collections:
   - name: schedule
     label: Schedule
     files:
-      - label: Upcoming Pop-Ups
+      - label: All Pop-Up Events
         name: schedule
         file: schedule.json
         fields:
