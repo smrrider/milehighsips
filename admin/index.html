@@ -137,17 +137,25 @@
       var events = cachedEvents || await loadEvents();
       var ev = events[idx];
       if (!ev) { setStatus('Event not found — reload'); return; }
-      log('Source event:', ev);
+      log('Copying:', ev.month, ev.day, ev.year, '—', ev.name);
 
       /* Click the Add button */
       var addBtn = findAddButton();
       if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
+      /*
+        KEY: snapshot all inputs that already exist BEFORE we add a new item.
+        After the add + expand, anything NOT in this set is the new item's fields.
+        This is far more reliable than trying to navigate the DOM by structure.
+      */
+      var beforeInputs = new Set(getInputs(document.body));
+      log('Existing inputs before add:', beforeInputs.size);
+
       setStatus('Creating…');
       var before = getAllTopBars().length;
       addBtn.click();
 
-      /* Wait for the new list item to appear */
+      /* Wait for the new list item top bar to appear (up to 6 s) */
       var newBar = null;
       for (var i = 0; i < 60; i++) {
         await sleep(100);
@@ -160,36 +168,41 @@
       }
       if (!newBar) { setStatus('⚠ New item never appeared'); return; }
 
-      await sleep(400);
+      /* Give the item time to auto-expand (Decap sometimes does this) */
+      await sleep(700);
 
-      /* Find the new item's inputs — expand if needed */
-      var newListItem = newBar.parentElement;
-      var newInputs   = getInputs(newListItem);
-      log('Inputs (before expand):', newInputs.length);
+      /* Find inputs that are genuinely new */
+      function freshInputs() {
+        return getInputs(document.body).filter(function(inp) {
+          return !beforeInputs.has(inp);
+        });
+      }
 
+      var newInputs = freshInputs();
+      log('New inputs (auto-expand check):', newInputs.length);
+
+      /* If not auto-expanded, click the expand toggle (first button in the bar) */
       if (newInputs.length < 2) {
         var expBtn = newBar.querySelector('button');
         if (expBtn) {
-          log('Expanding new item…');
-          expBtn.click();
-          await sleep(600);
+          log('Trying to expand new item…');
+          /* Use MouseEvent so React's event delegation picks it up */
+          expBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          await sleep(1200);
+          newInputs = freshInputs();
+          log('New inputs after expand attempt:', newInputs.length);
         }
-        newInputs = getInputs(newListItem);
-        log('Inputs (after expand):', newInputs.length);
       }
 
-      /* Walk up one level if still empty */
       if (newInputs.length < 2) {
-        newInputs = getInputs(newListItem.parentElement || newListItem);
-        log('Inputs (after parent walk):', newInputs.length);
+        setStatus('⚠ No fields appeared. Click the › arrow on the new event, then try again.');
+        return;
       }
-
-      if (!newInputs.length) { setStatus('⚠ No fields found'); return; }
 
       /*
         Fill in config.yml order:
           0 month   1 day   2 year   3 name   4 meta
-        recap(textarea) and instagram come after — leave blank for a new event copy.
+        recap (textarea) and instagram come after — leave blank for a copied event.
       */
       var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
       setStatus('Filling fields…');
@@ -202,7 +215,7 @@
       });
 
       newBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      setStatus('✅ Done — update the date & save!');
+      setStatus('✅ Done — update date & save!');
       log('── Complete ──');
     }
 
