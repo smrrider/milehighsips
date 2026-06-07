@@ -307,12 +307,21 @@
       var addBtn = findAddButton();
       if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
-      var beforeInputs = new Set(getInputs(document.body));
+      /*
+        Count-based diff instead of DOM-node identity.
+        React re-renders can replace node references, making the old
+        Set-based approach return stale nodes as "fresh".
+        New events are always appended at the bottom of the list, so
+        slicing from beforeCount reliably captures only the new item's
+        inputs regardless of re-renders.
+      */
+      var beforeCount = getInputs(document.body).length;
       var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
       var done = false, filling = false;
 
       function freshInputs() {
-        return getInputs(document.body).filter(function(inp) { return !beforeInputs.has(inp); });
+        var all = getInputs(document.body);
+        return all.slice(beforeCount);
       }
 
       function doFill() {
