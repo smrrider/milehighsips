@@ -89,6 +89,13 @@
       "name": "Caramel Altitude",
       "description": "Cold brew, vanilla syrup, caramel syrup, vanilla sweet cream, caramel drizzle",
       "drink_image": "assets/46885dea-0bfd-4ea1-96a5-469713ff25d2.png"
+    },
+    {
+      "category": "cold_brew",
+      "signature": false,
+      "full_width": false,
+      "name": "Pink Altitude ",
+      "description": "Cold brew, white chocolate syrup, raspberry syrup, half & half, vanilla cold foam"
     }
   ],
   "cyo_bases": [
