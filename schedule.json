@@ -84,6 +84,14 @@
       "day": "20",
       "year": "2026",
       "name": "Metro Denver Farmers Market",
+      "meta": "10AM-2PM",
+      "gallery": []
+    },
+    {
+      "month": "June",
+      "day": "13",
+      "year": "2026",
+      "name": "Metro Denver Farmers Market",
       "meta": "10AM-2PM"
     }
   ]
