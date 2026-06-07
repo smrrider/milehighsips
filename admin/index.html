@@ -222,6 +222,76 @@
       if (prev !== '') sel.value = prev;
     }
 
+    /*
+      fireFullClick — dispatches the complete browser pointer/mouse event sequence.
+      React listens for pointerdown/mousedown via delegation; sending only 'click'
+      can miss handlers that start their logic on the down events.
+    */
+    function fireFullClick(el) {
+      var r   = el.getBoundingClientRect();
+      var cx  = r.left + r.width  / 2;
+      var cy  = r.top  + r.height / 2;
+      var base = { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy };
+      ['pointerdown','mousedown','pointerup','mouseup','click'].forEach(function(type) {
+        try {
+          el.dispatchEvent(new (type.startsWith('pointer') ? PointerEvent : MouseEvent)(type, base));
+        } catch(e) {}
+      });
+    }
+
+    /*
+      callReactHandler — reads the __reactProps$ key React 18 attaches to every
+      DOM node and calls onClick or onMouseDown directly, bypassing the event
+      system entirely.  Most reliable when event dispatching is blocked.
+    */
+    function callReactHandler(el) {
+      for (var k in el) {
+        if (!k.startsWith('__reactProps')) continue;
+        var p = el[k];
+        if (!p) continue;
+        var fn = p.onClick || p.onMouseDown;
+        if (!fn) continue;
+        try {
+          fn({ preventDefault: function(){}, stopPropagation: function(){},
+               nativeEvent: {}, currentTarget: el, target: el });
+          return true;
+        } catch(e) { log('reactHandler error', e); }
+      }
+      return false;
+    }
+
+    /*
+      expandBar — scrolls the new top bar into view, waits for the browser to
+      paint, then tries every known strategy to expand the list item.
+    */
+    function expandBar(newBar, onExpanded) {
+      // Scroll into view so the element is in the viewport before we click it
+      newBar.scrollIntoView({ behavior: 'instant', block: 'center' });
+
+      // Double rAF ensures we run after React's next paint commit
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          log('Expand attempt — trying React props then full-click sequence');
+
+          // 1. Try React's own handler on the bar and each direct child
+          var tried = [newBar].concat(Array.from(newBar.children));
+          var reactFired = tried.some(function(el) { return callReactHandler(el); });
+
+          if (!reactFired) {
+            // 2. Full pointer+mouse sequence on the bar
+            fireFullClick(newBar);
+
+            // 3. Also on the first button inside (the collapse toggle arrow)
+            var btn = newBar.querySelector('button');
+            if (btn) fireFullClick(btn);
+          }
+
+          // Give React time to process and re-render
+          setTimeout(onExpanded, 500);
+        });
+      });
+    }
+
     /* ── Copy routine ── */
     function runCopy() {
       log('── runCopy start ──');
@@ -239,53 +309,54 @@
 
       /*
         Snapshot all current inputs, then watch for new ones via MutationObserver.
-        Fill fields the instant they appear, then immediately blur so Decap's
-        image/gallery widget doesn't auto-open a file picker.
+        Inputs appear when the new list item is expanded (auto or programmatically).
+        The moment >= 2 new inputs exist, fill the 5 text fields and blur so
+        Decap's gallery/image widget doesn't auto-open the media picker.
       */
       var beforeInputs = new Set(getInputs(document.body));
-      /* Only fill these 5 text fields — stop before recap/gallery/instagram */
-      var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
-      var done      = false;
-      var filling   = false;
+      var fieldKeys    = ['month', 'day', 'year', 'name', 'meta'];
+      var done         = false;
+      var filling      = false;
 
-      function tryFill() {
-        if (done || filling) return;
+      function doFill() {
+        // Re-query at fill time so we have the latest DOM state
         var newInputs = getInputs(document.body).filter(function(inp) {
           return !beforeInputs.has(inp);
         });
-        if (newInputs.length < 2) return;
+        if (newInputs.length < 2) { filling = false; return; }
 
-        filling = true;
+        done = true;
+        obs.disconnect();
+        clearTimeout(expireTimer);
 
-        /* Small delay so Decap finishes rendering before we poke inputs */
-        setTimeout(function() {
-          done = true;
-          obs.disconnect();
-          clearTimeout(expireTimer);
-
-          log('Filling', Math.min(newInputs.length, fieldKeys.length), 'fields');
-          fieldKeys.forEach(function(key, i) {
-            if (newInputs[i] && ev[key] != null) {
-              setVal(newInputs[i], String(ev[key]));
-              log('  set', key, '→', ev[key]);
-            }
-          });
-
-          /*
-            Blur active element immediately after filling.
-            Without this, focus moves forward to the gallery/image widget
-            and Decap auto-opens the media picker.
-          */
-          if (document.activeElement && document.activeElement !== document.body) {
-            document.activeElement.blur();
+        log('Filling', Math.min(newInputs.length, fieldKeys.length), 'fields');
+        fieldKeys.forEach(function(key, i) {
+          if (newInputs[i] && ev[key] != null) {
+            setVal(newInputs[i], String(ev[key]));
+            log('  set', key, '→', ev[key]);
           }
+        });
 
-          var bars = getAllTopBars();
-          if (bars.length) bars[bars.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Blur so focus doesn't land on the gallery/image widget
+        if (document.activeElement && document.activeElement !== document.body) {
+          document.activeElement.blur();
+        }
 
-          setStatus('✅ Done — update date & save!');
-          log('── Complete ──');
-        }, 250);
+        var bars = getAllTopBars();
+        if (bars.length) bars[bars.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        setStatus('✅ Done — update date & save!');
+        log('── Complete ──');
+      }
+
+      function tryFill() {
+        if (done || filling) return;
+        var fresh = getInputs(document.body).filter(function(inp) {
+          return !beforeInputs.has(inp);
+        });
+        if (fresh.length < 2) return;
+        filling = true;
+        setTimeout(doFill, 250); // short settle delay
       }
 
       var obs = new MutationObserver(tryFill);
@@ -296,19 +367,41 @@
         if (!done) setStatus('Timed out — try again');
       }, 60000);
 
-      setStatus('Added! Click › on new event to expand & fill…');
+      /* 1. Click the CMS "Add events" button */
+      setStatus('Adding…');
+      var before = getAllTopBars().length;
       addBtn.click();
 
-      /* Attempt programmatic expand after a short delay */
-      setTimeout(function() {
-        if (done) return;
-        var bars = getAllTopBars();
-        if (!bars.length) return;
-        var newBar = bars[bars.length - 1];
-        [newBar, newBar.querySelector('button')].forEach(function(el) {
-          if (el && !done) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      /* 2. Wait for the new top bar to appear, then auto-expand it */
+      var waitLoop = setInterval(function() {
+        if (done) { clearInterval(waitLoop); return; }
+        var nowBars = getAllTopBars();
+        if (nowBars.length <= before) return;
+        clearInterval(waitLoop);
+
+        var newBar = nowBars[nowBars.length - 1];
+        log('New bar detected — expanding');
+        setStatus('Expanding…');
+
+        expandBar(newBar, function() {
+          // After expand attempt: check if inputs are now in DOM
+          if (!done) {
+            tryFill();
+            // One more attempt 800ms later in case React was slow
+            setTimeout(function() {
+              if (!done && !filling) {
+                expandBar(newBar, function() { setTimeout(tryFill, 300); });
+              }
+            }, 800);
+          }
         });
-      }, 800);
+      }, 100);
+
+      // Safety: stop the interval after 8 s if bar never appears
+      setTimeout(function() {
+        clearInterval(waitLoop);
+        if (!done && !filling) setStatus('⚠ Click › on the new event to fill it');
+      }, 8000);
     }
 
     /* ── Show/hide based on URL hash ── */
