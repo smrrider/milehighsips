@@ -328,13 +328,6 @@ section .sub { margin-top: 14px; color: var(--ink-75); font-size: 1.05rem; }
 .ticket .info .meta { font-size: 0.85rem; color: var(--ink-75); margin-top: 2px; }
 .sched-foot { margin-top: 30px; color: rgba(255,255,255,0.7); font-size: 0.88rem; position: relative; }
 .sched-foot a { color: #fff; text-decoration: underline; }
-.sched-foot .flyer-link {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: rgba(255,255,255,0.12); border-radius: 20px;
-  padding: 2px 10px 2px 8px; text-decoration: none;
-  transition: background .2s;
-}
-.sched-foot .flyer-link:hover { background: rgba(255,255,255,0.22); text-decoration: none; }
 
 /* Past Pop-Ups subsection */
 .sched-subhead {
