@@ -5,193 +5,206 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mile High Sips — Admin</title>
   <style>
-    /* Duplicate button — shows next to the delete button on each list item */
     .mhs-dup-btn {
       background: rgba(255,255,255,0.12);
       border: 1px solid rgba(255,255,255,0.25);
       border-radius: 4px;
       color: inherit;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       line-height: 1;
       margin-right: 6px;
       padding: 3px 8px;
-      opacity: 0.7;
+      opacity: 0.75;
       transition: opacity 0.15s, background 0.15s;
       vertical-align: middle;
       white-space: nowrap;
     }
     .mhs-dup-btn:hover { opacity: 1; background: rgba(255,255,255,0.25); }
-    .mhs-dup-btn:active { opacity: 0.5; }
   </style>
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script>
-  /* ── Duplicate-event injector ── */
   (function () {
+    var LOG = '[MHS Copy]';
 
-    // Start after CMS has had time to render the page
-    setTimeout(start, 3000);
+    setTimeout(start, 3500);
 
     function start() {
       inject();
-      // Re-run whenever the DOM changes (navigation, new items added, etc.)
-      var observer = new MutationObserver(function () {
+      var obs = new MutationObserver(function () {
         clearTimeout(window._mhsDupT);
-        window._mhsDupT = setTimeout(inject, 400);
+        window._mhsDupT = setTimeout(inject, 450);
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+      obs.observe(document.body, { childList: true, subtree: true });
     }
 
-    /* ── Inject a 📋 Copy button into every list-item top bar ── */
+    /* ── Add 📋 Copy button to every list-item top bar ── */
     function inject() {
-      // Decap CMS uses Emotion CSS-in-JS with explicit labels.
-      // The label "StyledListItemTopBar" is appended to the generated class,
-      // so [class*="StyledListItemTopBar"] reliably targets these elements.
-      var topBars = document.querySelectorAll('[class*="StyledListItemTopBar"]');
-
-      topBars.forEach(function (bar) {
-        if (bar.dataset.mhsDup) return;       // already processed
+      document.querySelectorAll('[class*="StyledListItemTopBar"]').forEach(function (bar) {
+        if (bar.dataset.mhsDup) return;
         bar.dataset.mhsDup = '1';
 
-        // The last <button> in the top bar is the "Remove" button
         var btns = bar.querySelectorAll('button');
         if (!btns.length) return;
         var removeBtn = btns[btns.length - 1];
 
-        var dupBtn = document.createElement('button');
-        dupBtn.className = 'mhs-dup-btn';
-        dupBtn.textContent = '📋 Copy';
-        dupBtn.title = 'Duplicate this event';
-        dupBtn.type = 'button';
-
-        dupBtn.addEventListener('click', function (e) {
+        var btn = document.createElement('button');
+        btn.className = 'mhs-dup-btn';
+        btn.textContent = '📋 Copy';
+        btn.title = 'Duplicate this event';
+        btn.type = 'button';
+        btn.addEventListener('click', function (e) {
           e.stopPropagation();
           e.preventDefault();
-          runDuplicate(bar, dupBtn);
+          runCopy(bar, btn);
         });
 
-        // Insert just before the remove button
-        removeBtn.parentNode.insertBefore(dupBtn, removeBtn);
+        removeBtn.parentNode.insertBefore(btn, removeBtn);
       });
     }
 
-    /* ── Find the list item container for a top bar ── */
-    function getItemContainer(bar) {
-      // Walk up until we find an element that contains >=3 text inputs/textareas
-      // (that's the full expanded list item)
-      var el = bar.parentElement;
-      for (var i = 0; i < 12; i++) {
-        if (!el || el === document.body) break;
-        var fields = el.querySelectorAll('input[type="text"], input:not([type]), textarea');
-        if (fields.length >= 3) return { el: el, fields: Array.from(fields) };
-        el = el.parentElement;
-      }
-      return null;
-    }
-
-    /* ── Find the "Add Events" button for this list ── */
-    function getAddButton(bar) {
-      var el = bar.parentElement;
-      for (var i = 0; i < 25; i++) {
-        if (!el || el === document.body) break;
-        var found = Array.from(el.querySelectorAll('button')).find(function (b) {
-          return /^add\s/i.test(b.textContent.trim());
-        });
-        if (found) return found;
-        el = el.parentElement;
-      }
-      // Fallback: any "Add " button visible on the page
-      return Array.from(document.querySelectorAll('button')).find(function (b) {
-        return /^add\s/i.test(b.textContent.trim());
-      }) || null;
-    }
-
-    /* ── React-compatible value setter ── */
-    function setVal(input, value) {
+    /* ── React-safe value setter ── */
+    function setVal(el, val) {
       try {
-        var proto = input.tagName === 'TEXTAREA'
+        var proto = el.tagName === 'TEXTAREA'
           ? window.HTMLTextAreaElement.prototype
           : window.HTMLInputElement.prototype;
-        var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-        setter.call(input, value);
-        input.dispatchEvent(new Event('input',  { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (e) { /* ignore */ }
+        Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, val);
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (e) { console.warn(LOG, 'setVal failed', e); }
     }
 
     function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-    /* ── Main duplicate routine ── */
-    async function runDuplicate(bar, dupBtn) {
-      // 1. Expand the item if collapsed so fields are accessible
-      var collapseBtn = bar.querySelector('button');  // first button = collapse toggle
-      var isCollapsed = bar.closest('[class*="StyledListItemTopBar"]')
-        ? bar.parentElement && bar.parentElement.getAttribute('style') &&
-          bar.parentElement.getAttribute('style').includes('none')
-        : false;
+    /* ── Main copy routine ── */
+    async function runCopy(bar, btn) {
+      btn.textContent = '⏳ reading…';
+      console.log(LOG, '── Starting copy ──');
 
-      if (isCollapsed && collapseBtn) {
-        collapseBtn.click();
-        await sleep(300);
+      try {
+        /* 1. Find the list item element (direct parent of the top bar) */
+        var listItem = bar.parentElement;
+        console.log(LOG, '1. listItem tag:', listItem ? listItem.tagName : 'null',
+                    'class:', listItem ? listItem.className.substring(0, 60) : '');
+
+        /* 2. Try to read inputs from this item.
+              If collapsed Decap may render fields lazily — expand first. */
+        var inputs = getTextInputs(listItem);
+        console.log(LOG, '2a. inputs found (before expand):', inputs.length);
+
+        if (inputs.length < 2) {
+          // Click the first button in the bar to expand the item
+          var expandBtn = bar.querySelector('button');
+          if (expandBtn) {
+            console.log(LOG, '2b. Expanding item…');
+            expandBtn.click();
+            await sleep(500);
+            inputs = getTextInputs(listItem);
+            console.log(LOG, '2c. inputs found (after expand):', inputs.length);
+          }
+        }
+
+        if (inputs.length < 2) {
+          // Walk one level up (some Decap versions wrap ListItem in an extra div)
+          listItem = listItem.parentElement;
+          inputs = getTextInputs(listItem);
+          console.log(LOG, '2d. inputs after walking up:', inputs.length,
+                      '| container:', listItem ? listItem.className.substring(0, 60) : '');
+        }
+
+        if (!inputs.length) {
+          throw new Error('No text fields found in list item');
+        }
+
+        var values = inputs.map(function (inp) { return inp.value; });
+        console.log(LOG, '3. Captured values:', values);
+
+        /* 4. Find the "Add Events" button — look for the LAST "Add …" button
+              in the document (it's at the bottom of the event list) */
+        btn.textContent = '⏳ adding…';
+        var addBtn = findAddButton();
+        console.log(LOG, '4. Add button:', addBtn ? '"' + addBtn.textContent.trim() + '"' : 'NOT FOUND');
+        if (!addBtn) throw new Error('Add button not found');
+
+        /* 5. Count existing top bars, click Add, wait for new one */
+        var before = document.querySelectorAll('[class*="StyledListItemTopBar"]').length;
+        console.log(LOG, '5. top bars before click:', before);
+        addBtn.click();
+
+        var newBar = null;
+        for (var tries = 0; tries < 40; tries++) {
+          await sleep(100);
+          var bars = document.querySelectorAll('[class*="StyledListItemTopBar"]');
+          if (bars.length > before) {
+            newBar = bars[bars.length - 1];   // newest item is at the bottom
+            console.log(LOG, '6. New top bar appeared after', (tries + 1) * 100, 'ms');
+            break;
+          }
+        }
+        if (!newBar) throw new Error('New list item did not appear after 4 s');
+
+        /* 7. Fill in the new item's inputs */
+        await sleep(250);   // let React finish rendering the new item's fields
+        btn.textContent = '⏳ filling…';
+
+        var newListItem  = newBar.parentElement;
+        var newInputs    = getTextInputs(newListItem);
+        console.log(LOG, '7. new item inputs:', newInputs.length, '| source values:', values.length);
+
+        // If new item is still empty/collapsed, expand it
+        if (newInputs.length < 2) {
+          var newExpandBtn = newBar.querySelector('button');
+          if (newExpandBtn) { newExpandBtn.click(); await sleep(400); }
+          newInputs = getTextInputs(newListItem);
+          console.log(LOG, '7b. new item inputs after expand:', newInputs.length);
+        }
+
+        newInputs.forEach(function (inp, i) {
+          if (i < values.length && values[i] !== undefined) {
+            setVal(inp, values[i]);
+          }
+        });
+
+        /* 8. Scroll to new item */
+        newBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        btn.textContent = '✅ Done!';
+        console.log(LOG, '── Copy complete ──');
+        setTimeout(function () { btn.textContent = '📋 Copy'; }, 2500);
+
+      } catch (err) {
+        console.error(LOG, 'FAILED:', err.message);
+        btn.textContent = '⚠ ' + err.message.substring(0, 24);
+        setTimeout(function () { btn.textContent = '📋 Copy'; }, 4000);
       }
+    }
 
-      // 2. Read field values from this item
-      var item = getItemContainer(bar);
-      if (!item) {
-        dupBtn.textContent = '⚠ Not found';
-        setTimeout(function () { dupBtn.textContent = '📋 Copy'; }, 2000);
-        return;
-      }
-      var values = item.fields.map(function (f) { return f.value; });
-
-      // 3. Click "Add" to create a new blank item at the bottom
-      var addBtn = getAddButton(bar);
-      if (!addBtn) {
-        dupBtn.textContent = '⚠ No Add btn';
-        setTimeout(function () { dupBtn.textContent = '📋 Copy'; }, 2000);
-        return;
-      }
-
-      var beforeCount = document.querySelectorAll('[class*="StyledListItemTopBar"]').length;
-      addBtn.click();
-
-      // 4. Wait for the new item to appear
-      var waited = 0;
-      while (waited < 3000) {
-        await sleep(100);
-        waited += 100;
-        if (document.querySelectorAll('[class*="StyledListItemTopBar"]').length > beforeCount) break;
-      }
-      await sleep(250);  // let React finish rendering
-
-      // 5. Find the newly added item (last one in the list)
-      var allBars = document.querySelectorAll('[class*="StyledListItemTopBar"]');
-      var newBar  = allBars[allBars.length - 1];
-      if (!newBar || newBar === bar) {
-        dupBtn.textContent = '⚠ Failed';
-        setTimeout(function () { dupBtn.textContent = '📋 Copy'; }, 2000);
-        return;
-      }
-
-      var newItem = getItemContainer(newBar);
-      if (!newItem) {
-        dupBtn.textContent = '⚠ No fields';
-        setTimeout(function () { dupBtn.textContent = '📋 Copy'; }, 2000);
-        return;
-      }
-
-      // 6. Fill in the values (copy all except "day" so it's easy to change)
-      newItem.fields.forEach(function (input, i) {
-        if (values[i] !== undefined) setVal(input, values[i]);
+    /* ── Helpers ── */
+    function getTextInputs(container) {
+      if (!container) return [];
+      // Grab text-type inputs and textareas; exclude hidden / checkbox / radio
+      return Array.from(
+        container.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea')
+      ).filter(function (el) {
+        // Exclude inputs inside OTHER nested list items (for nested lists)
+        var parentBar = el.closest('[class*="StyledListItemTopBar"]');
+        return !parentBar || parentBar === container.querySelector('[class*="StyledListItemTopBar"]');
       });
+    }
 
-      // 7. Scroll to the new item and show feedback
-      newBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      dupBtn.textContent = '✅ Copied!';
-      setTimeout(function () { dupBtn.textContent = '📋 Copy'; }, 2500);
+    function findAddButton() {
+      // "Add Events" button — Decap CMS generates text "Add {label}"
+      // It's the LAST "Add " button in the document (below all list items)
+      var allAddBtns = Array.from(document.querySelectorAll('button')).filter(function (b) {
+        var t = b.textContent.trim();
+        return /^add\b/i.test(t) && t.length < 30;
+      });
+      console.log(LOG, 'All Add buttons:', allAddBtns.map(function(b){ return '"'+b.textContent.trim()+'"'; }));
+      // Return the last one — it will be the list's Add button at the bottom
+      return allAddBtns.length ? allAddBtns[allAddBtns.length - 1] : null;
     }
 
   })();
