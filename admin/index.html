@@ -389,23 +389,37 @@
         });
 
         var filled = 0;
+
+        /* Pass 1 — fill every key whose label was found */
+        var matchedInputSet = new Set();
         fieldKeys.forEach(function(key) {
-          var lbl  = keyToLabel[key];
-          var inp  = labelMap[lbl];
+          var lbl = keyToLabel[key];
+          var inp = labelMap[lbl];
           if (inp && ev[key] != null) {
             setVal(inp, String(ev[key]));
-            log('  set [' + lbl + '] =', ev[key]);
+            matchedInputSet.add(inp);
+            log('  label [' + lbl + '] =', ev[key]);
             filled++;
           }
         });
 
-        if (filled === 0) {
-          /* Fallback: positional fill (original behaviour) */
-          log('Label match failed, using positional fill');
-          fieldKeys.forEach(function(key, i) {
-            if (newInputs[i] && ev[key] != null) setVal(newInputs[i], String(ev[key]));
-          });
-        }
+        /*
+          Pass 2 — any keys that didn't get a label match (e.g. Month when
+          its field wrapper contains sibling inputs that fool the label-finder)
+          are paired positionally with inputs that weren't claimed in Pass 1.
+          Relative document order is preserved, so Month → first unclaimed
+          input, which is the Month input.
+        */
+        var unmatchedKeys   = fieldKeys.filter(function(k) { return !labelMap[keyToLabel[k]]; });
+        var unmatchedInputs = newInputs.filter(function(i) { return !matchedInputSet.has(i); });
+        unmatchedKeys.forEach(function(key, i) {
+          var inp = unmatchedInputs[i];
+          if (inp && ev[key] != null) {
+            setVal(inp, String(ev[key]));
+            log('  positional [' + key + '] =', ev[key]);
+            filled++;
+          }
+        });
 
         if (document.activeElement && document.activeElement !== document.body) {
           document.activeElement.blur();
