@@ -8,220 +8,231 @@
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
-  <!-- Floating event copier — lives OUTSIDE React's DOM tree so clicks are never intercepted -->
+  <!--
+    Quick Copy Event panel — fixed at top of page, outside React's DOM tree.
+    Event names come from schedule.json (not DOM scraping) so they're always accurate.
+    Copy fills the new item's inputs from that same JSON data.
+  -->
   <div id="mhs-panel" style="
-    position:fixed; bottom:24px; right:24px; z-index:99999;
-    background:#1F4E5A; color:#fff; border-radius:10px;
-    padding:14px 16px; box-shadow:0 6px 24px rgba(0,0,0,.45);
+    position:fixed; top:12px; right:190px; z-index:99999;
+    background:#1F4E5A; color:#fff; border-radius:7px;
+    padding:6px 10px; box-shadow:0 3px 12px rgba(0,0,0,.45);
     font-family:-apple-system,sans-serif; font-size:12px;
-    min-width:220px; display:none;
+    display:none; align-items:center; gap:8px;
   ">
-    <div style="font-weight:700;font-size:11px;letter-spacing:.08em;opacity:.65;margin-bottom:10px;text-transform:uppercase">
-      📋 Quick Copy Event
-    </div>
+    <span style="font-weight:700;opacity:.75;white-space:nowrap;">📋 Copy:</span>
 
     <select id="mhs-select" style="
-      width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
-      background:#fff;color:#1F4E5A;font-size:12px;margin-bottom:10px;font-weight:600;
+      padding:4px 6px; border-radius:5px; border:none;
+      background:#fff; color:#1F4E5A; font-size:12px; font-weight:600;
+      max-width:220px;
     ">
-      <option value="">— pick an event —</option>
+      <option value="">— pick event —</option>
     </select>
 
     <button id="mhs-copy-btn" style="
-      width:100%;padding:8px;background:#E85A8C;color:#fff;border:none;
-      border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;
-    ">Copy Selected Event</button>
+      padding:5px 12px; background:#E85A8C; color:#fff; border:none;
+      border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;
+      white-space:nowrap;
+    ">Copy</button>
 
-    <div id="mhs-status" style="margin-top:8px;font-size:11px;opacity:.7;min-height:14px;text-align:center"></div>
+    <span id="mhs-status" style="font-size:11px;opacity:.75;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;"></span>
   </div>
 
   <script>
   (function () {
-    var LOG = '[MHS Copy]';
+    var LOG = '[MHS]';
     function log() { console.log.apply(console, [LOG].concat(Array.from(arguments))); }
-
-    /* ── helpers ── */
     function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
-    function status(msg) {
+    function setStatus(msg) {
       log(msg);
       var el = document.getElementById('mhs-status');
       if (el) el.textContent = msg;
     }
 
+    /* React-safe input setter */
     function setVal(el, val) {
       try {
         var proto = el.tagName === 'TEXTAREA'
           ? window.HTMLTextAreaElement.prototype
           : window.HTMLInputElement.prototype;
         Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, val);
-        el.dispatchEvent(new Event('input',  { bubbles:true }));
-        el.dispatchEvent(new Event('change', { bubbles:true }));
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
       } catch(e) { log('setVal error', e); }
     }
 
+    /* All visible text/textarea inputs inside a container */
     function getInputs(container) {
       return Array.from(container.querySelectorAll(
         'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea'
       ));
     }
 
+    /* All Decap list-item top bars (stable Emotion class selector) */
     function getAllTopBars() {
       return Array.from(document.querySelectorAll('[class*="StyledListItemTopBar"]'));
     }
 
+    /* Find the "Add Events" button — always the last Add… button on the page */
     function findAddButton() {
       var all = Array.from(document.querySelectorAll('button')).filter(function(b){
         return /^add\b/i.test(b.textContent.trim()) && b.textContent.trim().length < 30;
       });
-      log('Add buttons:', all.map(function(b){ return '"'+b.textContent.trim()+'"'; }));
+      log('Add buttons found:', all.map(function(b){ return '"' + b.textContent.trim() + '"'; }));
       return all.length ? all[all.length - 1] : null;
     }
 
-    /* ── populate the dropdown ── */
-    function refreshSelect() {
+    /* ── Load events directly from schedule.json ── */
+    var cachedEvents = null;
+
+    async function loadEvents() {
+      try {
+        var resp = await fetch('/schedule.json?_=' + Date.now());
+        var data = await resp.json();
+        cachedEvents = data.events || [];
+        log('Loaded', cachedEvents.length, 'events from schedule.json');
+        return cachedEvents;
+      } catch(e) {
+        log('loadEvents error', e);
+        return [];
+      }
+    }
+
+    /* ── Populate dropdown from JSON ── */
+    async function refreshSelect() {
       var sel = document.getElementById('mhs-select');
       if (!sel) return;
-      var bars = getAllTopBars();
-      if (!bars.length) return;
 
-      // Preserve current choice
+      var events = await loadEvents();
       var prev = sel.value;
-      sel.innerHTML = '<option value="">— pick an event —</option>';
-      bars.forEach(function(bar, i) {
-        // Clone the bar, strip all <button> elements, then read remaining text.
-        // Decap's buttons only contain SVG icons (no visible text), so what's
-        // left is the summary string from the config template.
-        var clone = bar.cloneNode(true);
-        clone.querySelectorAll('button').forEach(function(b){ b.remove(); });
-        var label = clone.textContent.replace(/\s+/g, ' ').trim();
-        if (!label) label = 'Event ' + (i + 1);
+
+      sel.innerHTML = '<option value="">— pick event —</option>';
+      events.forEach(function(ev, i) {
+        var label = '';
+        if (ev.month) label += ev.month + ' ';
+        if (ev.day)   label += ev.day;
+        if (ev.year)  label += ', ' + ev.year;
+        if (ev.name)  label += ' — ' + ev.name;
+        label = label.trim() || ('Event ' + (i + 1));
 
         var opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = label.substring(0, 60);
+        opt.textContent = label.substring(0, 65);
         sel.appendChild(opt);
       });
-      if (prev) sel.value = prev;
+
+      if (prev !== '') sel.value = prev;
     }
 
-    /* ── main copy routine ── */
+    /* ── Copy routine ── */
     async function runCopy() {
       log('── runCopy start ──');
-      var sel  = document.getElementById('mhs-select');
-      var idx  = parseInt(sel.value, 10);
-      if (isNaN(idx)) { status('Pick an event first'); return; }
+      var sel = document.getElementById('mhs-select');
+      var idx = parseInt(sel.value, 10);
+      if (isNaN(idx)) { setStatus('Pick an event first'); return; }
 
-      var bars = getAllTopBars();
-      var bar  = bars[idx];
-      if (!bar) { status('Event not found — refresh list'); return; }
+      /* Get event data from JSON (not the DOM) */
+      var events = cachedEvents || await loadEvents();
+      var ev = events[idx];
+      if (!ev) { setStatus('Event not found — reload'); return; }
+      log('Source event:', ev);
 
-      /* 1. Find the list item container */
-      var listItem = bar.parentElement;
-      log('1. listItem class:', listItem && listItem.className.substring(0,80));
-
-      /* 2. Read inputs — expand if needed */
-      status('Reading fields…');
-      var inputs = getInputs(listItem);
-      log('2a. inputs before expand:', inputs.length);
-
-      if (inputs.length < 2) {
-        // click the first non-CMS button to expand
-        var expBtn = bar.querySelector('button');
-        if (expBtn) {
-          log('2b. Expanding…');
-          expBtn.click();
-          await sleep(600);
-          inputs = getInputs(listItem);
-          log('2c. inputs after expand:', inputs.length);
-        }
-      }
-      if (inputs.length < 2) {
-        listItem = listItem.parentElement;
-        inputs = getInputs(listItem);
-        log('2d. inputs after parent walk:', inputs.length);
-      }
-      if (!inputs.length) { status('⚠ No fields found'); return; }
-
-      var values = inputs.map(function(i){ return i.value; });
-      log('3. values:', values);
-
-      /* 3. Click Add */
-      status('Creating new event…');
+      /* Click the Add button */
       var addBtn = findAddButton();
-      if (!addBtn) { status('⚠ Add button not found'); return; }
-      log('4. Clicking:', addBtn.textContent.trim());
+      if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
+      setStatus('Creating…');
       var before = getAllTopBars().length;
       addBtn.click();
 
-      /* 4. Wait for new top bar */
+      /* Wait for the new list item to appear */
       var newBar = null;
-      for (var i = 0; i < 40; i++) {
+      for (var i = 0; i < 60; i++) {
         await sleep(100);
         var nowBars = getAllTopBars();
         if (nowBars.length > before) {
           newBar = nowBars[nowBars.length - 1];
-          log('5. New item after', (i+1)*100, 'ms');
+          log('New bar appeared after', (i + 1) * 100, 'ms');
           break;
         }
       }
-      if (!newBar) { status('⚠ New item never appeared'); return; }
+      if (!newBar) { setStatus('⚠ New item never appeared'); return; }
 
-      /* 5. Fill in values */
-      await sleep(300);
-      status('Filling in fields…');
+      await sleep(400);
 
+      /* Find the new item's inputs — expand if needed */
       var newListItem = newBar.parentElement;
       var newInputs   = getInputs(newListItem);
-      log('6. new inputs:', newInputs.length);
+      log('Inputs (before expand):', newInputs.length);
 
       if (newInputs.length < 2) {
-        var expBtn2 = newBar.querySelector('button');
-        if (expBtn2) { expBtn2.click(); await sleep(400); }
+        var expBtn = newBar.querySelector('button');
+        if (expBtn) {
+          log('Expanding new item…');
+          expBtn.click();
+          await sleep(600);
+        }
         newInputs = getInputs(newListItem);
-        log('6b. after expand:', newInputs.length);
+        log('Inputs (after expand):', newInputs.length);
       }
 
-      newInputs.forEach(function(inp, i){
-        if (i < values.length) setVal(inp, values[i]);
+      /* Walk up one level if still empty */
+      if (newInputs.length < 2) {
+        newInputs = getInputs(newListItem.parentElement || newListItem);
+        log('Inputs (after parent walk):', newInputs.length);
+      }
+
+      if (!newInputs.length) { setStatus('⚠ No fields found'); return; }
+
+      /*
+        Fill in config.yml order:
+          0 month   1 day   2 year   3 name   4 meta
+        recap(textarea) and instagram come after — leave blank for a new event copy.
+      */
+      var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
+      setStatus('Filling fields…');
+      newInputs.forEach(function(inp, i) {
+        var key = fieldKeys[i];
+        if (key && ev[key] !== undefined && ev[key] !== null) {
+          setVal(inp, String(ev[key]));
+          log('  set', key, '→', ev[key]);
+        }
       });
 
-      newBar.scrollIntoView({ behavior:'smooth', block:'nearest' });
-      status('✅ Done! Change the date and save.');
+      newBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setStatus('✅ Done — update the date & save!');
       log('── Complete ──');
     }
 
-    /* ── show/hide panel based on URL ── */
+    /* ── Show/hide panel based on URL hash ── */
     function checkPage() {
       var panel = document.getElementById('mhs-panel');
       if (!panel) return;
       var onSchedule = window.location.hash.includes('schedule');
-      panel.style.display = onSchedule ? 'block' : 'none';
+      panel.style.display = onSchedule ? 'flex' : 'none';
       if (onSchedule) refreshSelect();
     }
 
-    /* ── wire up button (fully outside React tree) ── */
-    document.getElementById('mhs-copy-btn').addEventListener('click', function(){
-      log('Button clicked!');
+    /* ── Wire up the copy button ── */
+    document.getElementById('mhs-copy-btn').addEventListener('click', function() {
+      log('Copy button clicked');
       runCopy();
     });
 
-    /* ── start watching ── */
-    setTimeout(function(){
+    /* ── Init after CMS loads ── */
+    setTimeout(function() {
       checkPage();
-      // Watch for navigation changes (hash changes) and DOM changes
-      window.addEventListener('hashchange', function(){
+      window.addEventListener('hashchange', function() {
         setTimeout(checkPage, 500);
       });
-      var obs = new MutationObserver(function(){
+      /* Watch for top-level DOM changes only (not subtree) to catch page transitions */
+      var obs = new MutationObserver(function() {
         clearTimeout(window._mhsT);
-        window._mhsT = setTimeout(function(){
-          checkPage();
-          refreshSelect();
-        }, 600);
+        window._mhsT = setTimeout(checkPage, 700);
       });
-      obs.observe(document.body, { childList:true, subtree:true });
+      obs.observe(document.body, { childList: true, subtree: false });
     }, 3500);
 
   })();
