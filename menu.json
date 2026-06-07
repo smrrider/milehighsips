@@ -5,66 +5,81 @@
   "drinks": [
     {
       "name": "Jumpseat Gossip",
-      "description": "Coke, vanilla syrup, lime syrup, coconut creme, half & half"
+      "description": "Coke, vanilla syrup, lime syrup, coconut creme, half & half",
+      "category": "dirty_soda"
     },
     {
       "name": "Island First Class",
-      "description": "Sprite, coconut syrup, vanilla syrup, lime syrup, vanilla cold foam"
+      "description": "Sprite, coconut syrup, vanilla syrup, lime syrup, vanilla cold foam",
+      "category": "dirty_soda"
     },
     {
       "name": "Cruising Altitude",
-      "description": "Coke, grenadine, raspberry syrup, vanilla cold foam"
+      "description": "Coke, grenadine, raspberry syrup, vanilla cold foam",
+      "category": "dirty_soda"
     },
     {
       "name": "The Safety Demo Spritz",
-      "description": "Sprite, strawberry syrup, grenadine, vanilla cold foam"
+      "description": "Sprite, strawberry syrup, grenadine, vanilla cold foam",
+      "category": "dirty_soda"
     },
     {
       "name": "Sky Princess",
-      "description": "Coke Zero, SF peach syrup, SF vanilla syrup, half & half"
+      "description": "Coke Zero, SF peach syrup, SF vanilla syrup, half & half",
+      "category": "dirty_soda"
     },
     {
       "name": "Jet Stream Splash",
-      "description": "Sprite, coconut syrup, splash of pineapple juice, half & half"
+      "description": "Sprite, coconut syrup, splash of pineapple juice, half & half",
+      "category": "dirty_soda"
     },
     {
       "name": "Red-Eye Refresher",
-      "description": "Dr Pepper, raspberry syrup, vanilla syrup, half & half"
+      "description": "Dr Pepper, raspberry syrup, vanilla syrup, half & half",
+      "category": "dirty_soda"
     },
     {
       "name": "Clear Skies",
-      "description": "Sprite, blue raspberry syrup, coconut creme, vanilla cold foam"
+      "description": "Sprite, blue raspberry syrup, coconut creme, vanilla cold foam",
+      "category": "dirty_soda"
     },
     {
       "name": "Mile High Sweetheart",
       "description": "Dr Pepper, grenadine, coconut creme, coconut syrup, vanilla cold foam",
+      "category": "dirty_soda",
       "drink_image": "assets/milehigh.PNG"
     },
     {
       "name": "Jet Lag Juice",
-      "description": "Pink Alani slush (+$2), vanilla syrup, grenadine, coconut creme"
+      "description": "Pink Alani slush (+$2), vanilla syrup, grenadine, coconut creme",
+      "category": "dirty_soda"
     },
     {
       "name": "Frequent Flyer",
-      "description": "Dr Pepper, strawberry syrup, vanilla syrup, half & half, vanilla cold foam"
+      "description": "Dr Pepper, strawberry syrup, vanilla syrup, half & half, vanilla cold foam",
+      "category": "dirty_soda"
     },
     {
       "name": "Cloud Nine ☁︎",
       "description": "Sprite, blue raspberry syrup, vanilla syrup, half & half, cotton candy cold foam, topped with a \"cloud.\"",
+      "category": "dirty_soda",
       "signature": true,
       "drink_image": "assets/signature.png"
     },
     {
       "name": "Layover Luxury Latte",
-      "description": "Cream soda, french vanilla syrup, coconut syrup, half & half"
+      "description": "Cream soda, french vanilla syrup, coconut syrup, half & half",
+      "category": "dirty_soda"
     },
     {
       "name": "The Pink Plane Club",
-      "description": "Cream soda, strawberry syrup, vanilla cold foam"
+      "description": "Cream soda, strawberry syrup, vanilla cold foam",
+      "category": "dirty_soda"
     },
     {
       "name": "Paradise Layover",
       "description": "Cream soda, peach syrup, blue raspberry syrup, coconut creme",
+      "category": "dirty_soda",
       "full_width": true
     }
   ],
