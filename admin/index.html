@@ -97,10 +97,21 @@
     }
 
     function findAddButton() {
-      var all = Array.from(document.querySelectorAll('button')).filter(function(b){
+      var all = Array.from(document.querySelectorAll('button'));
+
+      /* Priority 1: specifically the "Add events" / "Add Events +" button for the
+         main events list — prevents grabbing "Add Photo" inside an expanded event */
+      var eventsBtn = all.filter(function(b) {
+        var t = b.textContent.trim();
+        return /^add\s+events?\b/i.test(t);
+      });
+      if (eventsBtn.length) return eventsBtn[eventsBtn.length - 1];
+
+      /* Fallback: last short "Add" button */
+      var shortAdd = all.filter(function(b) {
         return /^add\b/i.test(b.textContent.trim()) && b.textContent.trim().length < 30;
       });
-      return all.length ? all[all.length - 1] : null;
+      return shortAdd.length ? shortAdd[shortAdd.length - 1] : null;
     }
 
     /* ── Drag to reposition ── */
@@ -369,7 +380,14 @@
 
       /* 1. Click Add */
       setStatus('Adding…');
-      var before = getAllTopBars().length;
+      /*
+        Snapshot existing bars BY REFERENCE before clicking Add.
+        After Add, we find the new bar as the one NOT in this Set —
+        avoids being fooled by photo-item bars inside expanded events,
+        or by document order placing sub-list bars after the new event bar.
+      */
+      var beforeBarsSet = new Set(getAllTopBars());
+      var before = beforeBarsSet.size;
       addBtn.click();
 
       /* 2. Once the new bar appears, scroll to it and overlay-pulse its expand arrow */
@@ -379,8 +397,10 @@
         if (nowBars.length <= before) return;
         clearInterval(waitLoop);
 
-        var newBar = nowBars[nowBars.length - 1];
-        log('New bar detected');
+        /* Find the specific new bar by identity (not position) */
+        var newBars = nowBars.filter(function(b) { return !beforeBarsSet.has(b); });
+        var detectedBar = newBars.length === 1 ? newBars[0] : nowBars[nowBars.length - 1];
+        log('New bar detected, identity-diff found', newBars.length, 'new bars');
 
         /* Wait for React to finish re-rendering after the Add */
         setTimeout(function() {
@@ -389,26 +409,26 @@
           if (freshInputs().length >= 2) { log('Auto-expanded'); tryFill(); return; }
 
           /*
-            IMPORTANT: do NOT use the captured `newBar` reference here.
-            React re-renders the whole list when an item is added, which
-            unmounts and remounts DOM nodes.  The saved reference is now
-            detached — getBoundingClientRect() returns all zeros.
-            Re-query the live DOM to get a fresh node.
+            Re-query for a fresh reference to the new event's bar.
+            Use the identity diff again rather than "last bar" so we
+            don't accidentally land on a photo-item bar inside an
+            already-expanded event.
           */
           function getLiveBar() {
             var bars = getAllTopBars();
-            return bars.length ? bars[bars.length - 1] : null;
+            var fresh = bars.filter(function(b) { return !beforeBarsSet.has(b); });
+            return fresh.length ? fresh[0] : (bars.length ? bars[bars.length - 1] : null);
           }
 
           var liveBar = getLiveBar();
           if (!liveBar) { setStatus('👆 Click › on the new event to auto-fill'); return; }
 
-          /* Scroll the fresh node into view */
+          /* Scroll the new event into view */
           liveBar.scrollIntoView({ behavior: 'instant', block: 'center' });
 
           /* One paint frame then measure */
           setTimeout(function() {
-            var liveBar2 = getLiveBar(); /* re-query again after scroll */
+            var liveBar2 = getLiveBar(); /* re-query in case React remounted */
             if (!liveBar2) { setStatus('👆 Click › on the new event to auto-fill'); return; }
 
             var btn = liveBar2.querySelector('button');
