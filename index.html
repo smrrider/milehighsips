@@ -115,8 +115,13 @@
   <div class="container">
     <div class="menu-head">
       <p class="eyebrow">The Menu</p>
-      <h2 class="pink">Dirty Sodas</h2>
+      <h2 class="pink">Our Drinks</h2>
       <p class="sub price"><span style="font-weight:700;" id="menu-dirty-price">Dirty Soda $6.00</span> · Create Your Own <span id="menu-cyo-price">$5.00 + $0.25 per topping</span></p>
+      <div class="menu-legend">
+        <span class="leg-soda">🥤 Dirty Soda</span>
+        <span class="leg-brew">☕ Cold Brew</span>
+        <span class="leg-sig">⭐ Signature</span>
+      </div>
     </div>
 
     <div class="menu-grid" id="menu-grid"></div>
@@ -408,7 +413,11 @@
     document.getElementById('menu-grid').innerHTML = data.drinks.map(function(d) {
       var cls   = 'menu-card' + (d.signature ? ' signature' : '') + (d.full_width ? ' full' : '');
       var attrs = d.drink_image ? ' data-drink-img="' + d.drink_image + '" data-drink-caption="' + d.name + '"' : '';
-      var html  = d.signature ? '<span class="signature-tag">Signature</span>' : '';
+      var badgeClass = d.cold_brew ? 'cold-brew' : 'dirty-soda';
+      var badgeIcon  = d.cold_brew ? '☕' : '🥤';
+      var badgeLabel = d.cold_brew ? 'Cold Brew' : 'Dirty Soda';
+      var html  = d.signature ? '<span class="signature-tag">⭐ Signature</span>' : '';
+      html += '<span class="drink-badge ' + badgeClass + '">' + badgeIcon + ' ' + badgeLabel + '</span>';
       html += '<h3>' + d.name + '</h3><p>' + upcharge(d.description) + '</p>';
       if (d.drink_image) {
         html += '<span class="sig-hint">📷 Tap to see the drink</span>';

@@ -246,6 +246,31 @@ section .sub { margin-top: 14px; color: var(--ink-75); font-size: 1.05rem; }
 }
 .menu-card.full { grid-column: 1 / -1; }
 
+/* ── Drink category badge ── */
+.drink-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.63rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; padding: 4px 10px; border-radius: 999px;
+  margin-bottom: 10px;
+}
+.drink-badge.dirty-soda { background: rgba(232,90,140,0.12); color: var(--pink); }
+.drink-badge.cold-brew  { background: rgba(31,78,90,0.13);   color: var(--teal); }
+
+/* ── Menu legend ── */
+.menu-legend {
+  display: flex; justify-content: center; align-items: center;
+  gap: 10px; margin-top: 16px; flex-wrap: wrap;
+}
+.menu-legend span {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 5px 13px; border-radius: 999px;
+}
+.menu-legend .leg-soda  { background: rgba(232,90,140,0.12); color: var(--pink); }
+.menu-legend .leg-brew  { background: rgba(31,78,90,0.13);   color: var(--teal); }
+.menu-legend .leg-sig   { background: rgba(255,255,255,0.85); color: var(--pink);
+                           border: 1px solid rgba(232,90,140,0.25); }
+
 .cyo { margin-top: 60px; }
 .cyo-head { text-align: center; }
 .cyo-head h3 { font-family: 'Fredoka', sans-serif; color: var(--pink); font-size: clamp(1.6rem, 3vw, 2.1rem); margin: 0; }
