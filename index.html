@@ -413,9 +413,10 @@
     document.getElementById('menu-grid').innerHTML = data.drinks.map(function(d) {
       var cls   = 'menu-card' + (d.signature ? ' signature' : '') + (d.full_width ? ' full' : '');
       var attrs = d.drink_image ? ' data-drink-img="' + d.drink_image + '" data-drink-caption="' + d.name + '"' : '';
-      var badgeClass = d.cold_brew ? 'cold-brew' : 'dirty-soda';
-      var badgeIcon  = d.cold_brew ? '☕' : '🥤';
-      var badgeLabel = d.cold_brew ? 'Cold Brew' : 'Dirty Soda';
+      var isColdBrew = d.category === 'cold_brew';
+      var badgeClass = isColdBrew ? 'cold-brew' : 'dirty-soda';
+      var badgeIcon  = isColdBrew ? '☕' : '🥤';
+      var badgeLabel = isColdBrew ? 'Cold Brew' : 'Dirty Soda';
       var html  = d.signature ? '<span class="signature-tag">⭐ Signature</span>' : '';
       html += '<span class="drink-badge ' + badgeClass + '">' + badgeIcon + ' ' + badgeLabel + '</span>';
       html += '<h3>' + d.name + '</h3><p>' + upcharge(d.description) + '</p>';

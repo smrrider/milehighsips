@@ -51,7 +51,13 @@ collections:
             fields:
               - { label: "Drink Name",   name: name,        widget: string }
               - { label: "Description",  name: description, widget: text }
-              - { label: "Cold Brew",    name: cold_brew,   widget: boolean, default: false, required: false, hint: "Check for cold brew drinks — leave unchecked for dirty sodas" }
+              - label: "Category"
+                name: category
+                widget: select
+                default: "dirty_soda"
+                options:
+                  - { label: "Dirty Soda", value: "dirty_soda" }
+                  - { label: "Cold Brew",  value: "cold_brew"  }
               - { label: "Signature Drink", name: signature,  widget: boolean, default: false, required: false }
               - { label: "Full-Width Card", name: full_width, widget: boolean, default: false, required: false, hint: "Spans both columns — use for the last item" }
               - { label: "Drink Photo",  name: drink_image, widget: image,   required: false, hint: "Optional — shows hover preview and lightbox" }
