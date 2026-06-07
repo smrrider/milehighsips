@@ -75,8 +75,8 @@
       "day": "27",
       "year": "2026",
       "name": "Metro Denver Farmers Market",
-      "recap": "9077 W Alameda Ave",
-      "meta": "10AM-2PM",
+      "recap": "",
+      "meta": "9077 W Alameda Ave ·10AM-2PM",
       "gallery": []
     },
     {
@@ -92,7 +92,8 @@
       "day": "13",
       "year": "2026",
       "name": "Metro Denver Farmers Market",
-      "meta": "10AM-2PM"
+      "meta": "9077 W Alameda Ave ·10AM-2PM",
+      "gallery": []
     }
   ]
 }
