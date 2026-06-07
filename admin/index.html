@@ -222,6 +222,28 @@
       if (prev !== '') sel.value = prev;
     }
 
+    /* ── Inject pulse-animation CSS once ── */
+    (function() {
+      if (document.getElementById('mhs-style')) return;
+      var s = document.createElement('style');
+      s.id = 'mhs-style';
+      s.textContent = [
+        '@keyframes mhsPulse{',
+        '  0%,100%{box-shadow:0 0 0 3px #E85A8C,0 0 0 6px rgba(232,90,140,.35)}',
+        '  50%{box-shadow:0 0 0 5px #E85A8C,0 0 0 12px rgba(232,90,140,.0)}',
+        '}',
+        '.mhs-pulse{',
+        '  animation:mhsPulse .7s ease-in-out infinite!important;',
+        '  border-radius:4px!important;',
+        '  background:#E85A8C!important;',
+        '  color:#fff!important;',
+        '  transform:scale(1.3)!important;',
+        '  transition:none!important;',
+        '}'
+      ].join('');
+      document.head.appendChild(s);
+    })();
+
     /* ── Copy routine ── */
     function runCopy() {
       log('── runCopy start ──');
@@ -238,12 +260,16 @@
       if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
       var beforeInputs = new Set(getInputs(document.body));
-      var fieldKeys    = ['month', 'day', 'year', 'name', 'meta'];
+      var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
       var done = false, filling = false;
+      var pulseBtn = null; // the expand button we're highlighting
 
-      /* ── helpers ── */
       function freshInputs() {
         return getInputs(document.body).filter(function(inp) { return !beforeInputs.has(inp); });
+      }
+
+      function stopPulse() {
+        if (pulseBtn) { pulseBtn.classList.remove('mhs-pulse'); pulseBtn = null; }
       }
 
       function doFill() {
@@ -252,6 +278,7 @@
         done = true;
         obs.disconnect();
         clearTimeout(expireTimer);
+        stopPulse();
         log('Filling', Math.min(newInputs.length, fieldKeys.length), 'fields');
         fieldKeys.forEach(function(key, i) {
           if (newInputs[i] && ev[key] != null) {
@@ -272,98 +299,28 @@
         if (done || filling) return;
         if (freshInputs().length < 2) return;
         filling = true;
-        setTimeout(doFill, 250);
+        setTimeout(doFill, 200);
       }
 
       /*
-        tryExpand — tries every known strategy to open a collapsed Decap list item.
-        1. React __reactProps$ handler (React 18) on ALL descendants — found by
-           deep-searching the entire subtree so we don't miss nested wrappers.
-        2. Keyboard: focus the button then dispatch Space, which browsers convert
-           to a trusted-like activation even from script.
-        3. Full pointer+mouse sequence (pointerdown→mousedown→pointerup→mouseup→click).
-        Returns true if a React handler was found and invoked.
+        MutationObserver is the reliable path — it fires whenever Decap adds
+        inputs to the DOM (auto-expand OR user clicks ›).  Everything else
+        below is just UX to make that one click obvious.
       */
-      function tryExpand(newBar) {
-        log('tryExpand — bar class:', newBar.className.substring(0, 60));
-
-        // ── Strategy 1: walk ALL descendants looking for React onClick ──
-        var allEls = [newBar].concat(Array.from(newBar.querySelectorAll('*')));
-        var reactFired = false;
-        for (var i = 0; i < allEls.length && !reactFired; i++) {
-          var el = allEls[i];
-          for (var k in el) {
-            if (!k.startsWith('__reactProps') && !k.startsWith('__reactEventHandlers')) continue;
-            var p = el[k];
-            if (!p) continue;
-            var fn = p.onClick || p.onMouseDown || p.onPointerDown;
-            if (!fn) continue;
-            try {
-              fn({
-                preventDefault: function(){}, stopPropagation: function(){},
-                stopImmediatePropagation: function(){},
-                isPropagationStopped: function(){ return false; },
-                isDefaultPrevented: function(){ return false; },
-                persist: function(){},
-                nativeEvent: { preventDefault: function(){}, stopPropagation: function(){},
-                               isTrusted: true, target: el, currentTarget: el, type: 'click' },
-                currentTarget: el, target: el, type: 'click',
-                bubbles: true, cancelable: true, timeStamp: Date.now(),
-              });
-              log('  React handler fired on', el.tagName, (el.className||'').substring(0,40));
-              reactFired = true;
-            } catch(e) { log('  reactHandler error:', e.message); }
-            break;
-          }
-        }
-
-        // ── Strategy 2: keyboard activation on the first button ──
-        var btn = newBar.querySelector('button');
-        if (btn) {
-          btn.focus();
-          ['keydown','keypress','keyup'].forEach(function(t) {
-            btn.dispatchEvent(new KeyboardEvent(t, {
-              key: ' ', code: 'Space', keyCode: 32, which: 32,
-              bubbles: true, cancelable: true
-            }));
-          });
-          ['keydown','keypress','keyup'].forEach(function(t) {
-            btn.dispatchEvent(new KeyboardEvent(t, {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-          });
-        }
-
-        // ── Strategy 3: full pointer+mouse sequence ──
-        [newBar, btn].filter(Boolean).forEach(function(target) {
-          var r  = target.getBoundingClientRect();
-          var cx = r.left + r.width/2, cy = r.top + r.height/2;
-          var base = { bubbles:true, cancelable:true, view:window, clientX:cx, clientY:cy };
-          ['pointerdown','mousedown','pointerup','mouseup','click'].forEach(function(type) {
-            try { target.dispatchEvent(new (type.startsWith('pointer') ? PointerEvent : MouseEvent)(type, base)); }
-            catch(e) {}
-          });
-        });
-
-        return reactFired;
-      }
-
-      /* ── MutationObserver watches for inputs appearing (handles both
-            auto-expand and manual › click as a final fallback) ── */
       var obs = new MutationObserver(tryFill);
       obs.observe(document.body, { childList: true, subtree: true });
 
       var expireTimer = setTimeout(function() {
-        obs.disconnect();
+        obs.disconnect(); stopPulse();
         if (!done) setStatus('Timed out — try again');
       }, 60000);
 
-      /* ── Click Add, then drive the expand ── */
+      /* 1. Click Add */
       setStatus('Adding…');
       var before = getAllTopBars().length;
       addBtn.click();
 
+      /* 2. Once the new bar appears, scroll to it and highlight its expand arrow */
       var waitLoop = setInterval(function() {
         if (done) { clearInterval(waitLoop); return; }
         var nowBars = getAllTopBars();
@@ -373,44 +330,31 @@
         var newBar = nowBars[nowBars.length - 1];
         log('New bar detected');
 
-        // Wait for React's initial render pass
+        /* Short pause for React to finish rendering the new item */
         setTimeout(function() {
-          // Check if item auto-expanded (inputs already in DOM)
-          if (freshInputs().length >= 2) {
-            log('Item was auto-expanded');
-            tryFill();
-            return;
+
+          /* If it auto-expanded, fill straight away */
+          if (freshInputs().length >= 2) { log('Auto-expanded'); tryFill(); return; }
+
+          /* Scroll so the new item is visible */
+          newBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          /* Pulse-animate the expand arrow so it's unmissable */
+          var btn = newBar.querySelector('button');
+          if (btn) {
+            pulseBtn = btn;
+            btn.classList.add('mhs-pulse');
           }
 
-          // Not expanded yet — scroll into view then try expanding
-          newBar.scrollIntoView({ behavior: 'instant', block: 'center' });
-          setStatus('Expanding…');
+          setStatus('👆 Click the flashing arrow to auto-fill');
 
-          // Three rounds of expand attempts, 600 ms apart
-          var round = 0;
-          function expandRound() {
-            if (done || round >= 3) return;
-            round++;
-            log('Expand round', round);
-            requestAnimationFrame(function() {
-              requestAnimationFrame(function() {
-                tryExpand(newBar);
-                setTimeout(function() {
-                  if (freshInputs().length >= 2) { tryFill(); }
-                  else { expandRound(); }
-                }, 600);
-              });
-            });
-          }
-          expandRound();
-
-        }, 450);
+        }, 400);
       }, 100);
 
       setTimeout(function() {
         clearInterval(waitLoop);
-        if (!done && !filling) setStatus('⚠ Click › on the new event to fill it');
-      }, 10000);
+        if (!done && !filling) { stopPulse(); setStatus('⚠ Expand the new event to fill it'); }
+      }, 15000);
     }
 
     /* ── Show/hide based on URL hash ── */
