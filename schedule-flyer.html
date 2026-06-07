@@ -6,7 +6,8 @@
   <title>Schedule Flyer Generator — Mile High Sips</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- All font options pre-loaded so there's no delay when switching -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&family=Inter:wght@400;700&family=Pacifico&family=Poppins:wght@400;700&family=Bebas+Neue&family=Playfair+Display:wght@700&family=Lato:wght@400;700&family=Righteous&family=Nunito:wght@400;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --teal:#1F4E5A; --pink:#E85A8C; --cream:#FBF4E8; --ink:#2A3F5C; --border:#e2ddd4; }
@@ -121,6 +122,20 @@
     <hr class="hr">
 
     <div>
+      <div class="sec-label">Font Style</div>
+      <select id="font-style">
+        <option value="fredoka">Fun &amp; Bubbly — Fredoka (default)</option>
+        <option value="pacifico">Retro Soda Shop — Pacifico</option>
+        <option value="bebas">Bold Impact — Bebas Neue</option>
+        <option value="playfair">Classic Elegant — Playfair Display</option>
+        <option value="righteous">Groovy Retro — Righteous</option>
+        <option value="nunito">Soft &amp; Round — Nunito</option>
+      </select>
+    </div>
+
+    <hr class="hr">
+
+    <div>
       <div class="sec-label">Colors</div>
       <div class="ctrl-group">
         <div class="color-row"><label>Background</label><input type="color" id="bg-color" value="#5B72C4"></div>
@@ -160,9 +175,18 @@
   </div>
 </div>
 
-<!-- Font primer (forces fonts to load) -->
-<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Fredoka';font-weight:700;font-size:1px">x</span>
-<span style="position:absolute;opacity:0;pointer-events:none;font-family:'Inter';font-weight:400;font-size:1px">x</span>
+<!-- Font primers (trigger browser font load for all options) -->
+<span style="position:absolute;opacity:0;pointer-events:none;font-size:1px">
+  <span style="font-family:'Fredoka';font-weight:700">x</span>
+  <span style="font-family:'Inter';font-weight:400">x</span>
+  <span style="font-family:'Pacifico'">x</span>
+  <span style="font-family:'Poppins';font-weight:700">x</span>
+  <span style="font-family:'Bebas Neue'">x</span>
+  <span style="font-family:'Playfair Display';font-weight:700">x</span>
+  <span style="font-family:'Lato';font-weight:400">x</span>
+  <span style="font-family:'Righteous'">x</span>
+  <span style="font-family:'Nunito';font-weight:800">x</span>
+</span>
 
 <script>
 /* ─── Fetch schedule.json ─── */
@@ -343,6 +367,16 @@ function addGrain(ctx, w, h) {
   ctx.putImageData(d, 0, 0);
 }
 
+/* ─── Font pairs ─── */
+const FONT_PAIRS = {
+  fredoka:  { disp: 'Fredoka',          body: 'Inter' },
+  pacifico: { disp: 'Pacifico',         body: 'Poppins' },
+  bebas:    { disp: 'Bebas Neue',       body: 'Inter' },
+  playfair: { disp: 'Playfair Display', body: 'Lato' },
+  righteous:{ disp: 'Righteous',        body: 'Inter' },
+  nunito:   { disp: 'Nunito',           body: 'Nunito' },
+};
+
 /* ─── Main render ─── */
 async function generate() {
   const events = getSelectedEvents();
@@ -360,8 +394,17 @@ async function generate() {
   const showWebsite = document.getElementById('show-website').checked;
   const showGrain   = document.getElementById('show-grain').checked;
 
+  // Font pair
+  const pair = FONT_PAIRS[document.getElementById('font-style').value] || FONT_PAIRS.fredoka;
+  const DISP = pair.disp;   // headers, venue names, day names
+  const BODY = pair.body;   // dates, addresses, footer body
+
   setStatus('Rendering…');
-  await document.fonts.ready;
+  // Load selected fonts explicitly (handles switching after page already loaded)
+  await Promise.all([
+    document.fonts.load(`700 64px "${DISP}"`),
+    document.fonts.load(`400 32px "${BODY}"`),
+  ]);
 
   const cv = document.getElementById('flyer-canvas');
   cv.width = W; cv.height = H;
@@ -398,7 +441,7 @@ async function generate() {
   ctx.save();
   ctx.translate(20, H / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.font = `700 17px Fredoka`;
+  ctx.font = `700 17px "${DISP}"`;
   ctx.fillStyle = textC; ctx.globalAlpha = .11; ctx.textAlign = 'center';
   ctx.fillText('MILE HIGH SIPS · DIRTY SODAS · DENVER CO', 0, 0);
   ctx.globalAlpha = 1; ctx.restore();
@@ -406,10 +449,10 @@ async function generate() {
   // ── 5. Header — MONTH + SCHEDULE centered in hdrH ──
   // Font size: up to 15% of canvas width, but capped by header zone height
   let mSize = Math.min(Math.round(W * .155), Math.round(hdrH * .43));
-  ctx.font = `700 ${mSize}px Fredoka`;
+  ctx.font = `700 ${mSize}px "${DISP}"`;
   // Shrink if text overflows horizontally
   while (mSize > 32 && ctx.measureText(month.toUpperCase()).width > W - PAD_H * 2) {
-    mSize -= 2; ctx.font = `700 ${mSize}px Fredoka`;
+    mSize -= 2; ctx.font = `700 ${mSize}px "${DISP}"`;
   }
   const sSize      = Math.round(mSize * .82);
   const lineGapHdr = Math.round(mSize * .10);
@@ -418,9 +461,9 @@ async function generate() {
   const monthBaseY = hdrMidY - totalHdrTxt / 2 + mSize;
 
   ctx.textAlign = 'center'; ctx.fillStyle = accentColor;
-  ctx.font = `700 ${mSize}px Fredoka`;
+  ctx.font = `700 ${mSize}px "${DISP}"`;
   ctx.fillText(month.toUpperCase(), W / 2, monthBaseY);
-  ctx.font = `700 ${sSize}px Fredoka`;
+  ctx.font = `700 ${sSize}px "${DISP}"`;
   ctx.fillText('SCHEDULE', W / 2, monthBaseY + lineGapHdr + sSize);
 
   // ── 6. Corner asterisks ──
@@ -468,21 +511,21 @@ async function generate() {
     const leftTopY = rowMid - leftH / 2;
 
     ctx.textAlign = 'left'; ctx.fillStyle = textC;
-    ctx.font = `700 ${dayFS}px Fredoka`;
+    ctx.font = `700 ${dayFS}px "${DISP}"`;
     ctx.fillText(ev.dayName, PAD_H, leftTopY + dayFS);
 
-    ctx.font = `400 ${datFS}px Inter`;
+    ctx.font = `400 ${datFS}px "${BODY}"`;
     ctx.globalAlpha = .72;
     ctx.fillText(ev.dateStr, PAD_H, leftTopY + dayFS + 8 + datFS);
     ctx.globalAlpha = 1;
 
     // ── Right column: Venue (auto-wrap max 2 lines) + "address · time" ──
     let venFS = venFSmax;
-    ctx.font = `700 ${venFS}px Fredoka`;
+    ctx.font = `700 ${venFS}px "${DISP}"`;
     let venLines = wrapText(ctx, ev.name, rightColW);
     // Reduce until fits in 2 lines
     while (venLines.length > 2 && venFS > 14) {
-      venFS -= 2; ctx.font = `700 ${venFS}px Fredoka`;
+      venFS -= 2; ctx.font = `700 ${venFS}px "${DISP}"`;
       venLines = wrapText(ctx, ev.name, rightColW);
     }
 
@@ -493,13 +536,13 @@ async function generate() {
 
     ctx.fillStyle = textC;
     venLines.forEach((ln, li) => {
-      ctx.font = `700 ${venFS}px Fredoka`;
+      ctx.font = `700 ${venFS}px "${DISP}"`;
       ctx.textAlign = 'left';
       ctx.fillText(ln, rightColX, rightTopY + venFS + li * venLineH);
     });
 
     if (detailLine) {
-      ctx.font = `400 ${detFS}px Inter`;
+      ctx.font = `400 ${detFS}px "${BODY}"`;
       ctx.globalAlpha = .70;
       ctx.fillText(detailLine, rightColX, rightTopY + venLines.length * venLineH + 10 + detFS);
       ctx.globalAlpha = 1;
@@ -508,9 +551,9 @@ async function generate() {
 
   // ── 9. Footer — centered in footer zone ──
   const fLines = [];
-  if (showTagline && taglineText) fLines.push({ text: taglineText, bold: false, fam: 'Inter',   size: Math.min(44, Math.round(H * .026)) });
-  if (showEmail)                  fLines.push({ text: 'milehighsipscrew@gmail.com', bold: false, fam: 'Inter',  size: Math.min(34, Math.round(H * .021)) });
-  if (showWebsite)                fLines.push({ text: 'milehighsips.com', bold: true, fam: 'Fredoka', size: Math.min(36, Math.round(H * .021)) });
+  if (showTagline && taglineText) fLines.push({ text: taglineText,                    bold: false, fam: BODY, size: Math.min(44, Math.round(H * .026)) });
+  if (showEmail)                  fLines.push({ text: 'milehighsipscrew@gmail.com',  bold: false, fam: BODY, size: Math.min(34, Math.round(H * .021)) });
+  if (showWebsite)                fLines.push({ text: 'milehighsips.com',             bold: true,  fam: DISP, size: Math.min(36, Math.round(H * .021)) });
 
   if (fLines.length) {
     const fGap  = Math.round(H * .014);
