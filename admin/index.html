@@ -127,96 +127,85 @@
     }
 
     /* ── Copy routine ── */
-    async function runCopy() {
+    function runCopy() {
       log('── runCopy start ──');
       var sel = document.getElementById('mhs-select');
       var idx = parseInt(sel.value, 10);
       if (isNaN(idx)) { setStatus('Pick an event first'); return; }
 
-      /* Get event data from JSON (not the DOM) */
-      var events = cachedEvents || await loadEvents();
+      var events = cachedEvents;
+      if (!events || !events[idx]) { setStatus('Reload the page and try again'); return; }
       var ev = events[idx];
-      if (!ev) { setStatus('Event not found — reload'); return; }
       log('Copying:', ev.month, ev.day, ev.year, '—', ev.name);
 
-      /* Click the Add button */
       var addBtn = findAddButton();
       if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
       /*
-        KEY: snapshot all inputs that already exist BEFORE we add a new item.
-        After the add + expand, anything NOT in this set is the new item's fields.
-        This is far more reliable than trying to navigate the DOM by structure.
+        Strategy: snapshot all inputs BEFORE clicking Add, then set up a
+        MutationObserver to watch for new inputs to appear in the DOM.
+        The moment they show up — whether Decap auto-expands the new item
+        or you manually click the › arrow — we fill them immediately.
+        No polling, no timing guesses.
       */
       var beforeInputs = new Set(getInputs(document.body));
-      log('Existing inputs before add:', beforeInputs.size);
+      var fieldKeys    = ['month', 'day', 'year', 'name', 'meta'];
+      var done         = false;
 
-      setStatus('Creating…');
-      var before = getAllTopBars().length;
-      addBtn.click();
-
-      /* Wait for the new list item top bar to appear (up to 6 s) */
-      var newBar = null;
-      for (var i = 0; i < 60; i++) {
-        await sleep(100);
-        var nowBars = getAllTopBars();
-        if (nowBars.length > before) {
-          newBar = nowBars[nowBars.length - 1];
-          log('New bar appeared after', (i + 1) * 100, 'ms');
-          break;
-        }
-      }
-      if (!newBar) { setStatus('⚠ New item never appeared'); return; }
-
-      /* Give the item time to auto-expand (Decap sometimes does this) */
-      await sleep(700);
-
-      /* Find inputs that are genuinely new */
-      function freshInputs() {
-        return getInputs(document.body).filter(function(inp) {
+      function tryFill() {
+        if (done) return;
+        var newInputs = getInputs(document.body).filter(function(inp) {
           return !beforeInputs.has(inp);
         });
+        if (newInputs.length < 2) return;
+
+        done = true;
+        obs.disconnect();
+        clearTimeout(expireTimer);
+
+        log('Filling', newInputs.length, 'new inputs');
+        fieldKeys.forEach(function(key, i) {
+          if (newInputs[i] && ev[key] != null) {
+            setVal(newInputs[i], String(ev[key]));
+            log('  set', key, '→', ev[key]);
+          }
+        });
+
+        /* Scroll to the new item */
+        var bars = getAllTopBars();
+        if (bars.length) bars[bars.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        setStatus('✅ Done — update date & save!');
+        log('── Complete ──');
       }
 
-      var newInputs = freshInputs();
-      log('New inputs (auto-expand check):', newInputs.length);
+      /* Watch for any DOM change; fill as soon as new inputs appear */
+      var obs = new MutationObserver(tryFill);
+      obs.observe(document.body, { childList: true, subtree: true });
 
-      /* If not auto-expanded, click the expand toggle (first button in the bar) */
-      if (newInputs.length < 2) {
-        var expBtn = newBar.querySelector('button');
-        if (expBtn) {
-          log('Trying to expand new item…');
-          /* Use MouseEvent so React's event delegation picks it up */
-          expBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-          await sleep(1200);
-          newInputs = freshInputs();
-          log('New inputs after expand attempt:', newInputs.length);
-        }
-      }
+      /* Give up after 60 s */
+      var expireTimer = setTimeout(function() {
+        obs.disconnect();
+        if (!done) setStatus('Timed out — try again');
+      }, 60000);
 
-      if (newInputs.length < 2) {
-        setStatus('⚠ No fields appeared. Click the › arrow on the new event, then try again.');
-        return;
-      }
+      /* Click Add — observer is already watching */
+      setStatus('Added! Click › on the new event at the bottom to expand & fill…');
+      addBtn.click();
 
-      /*
-        Fill in config.yml order:
-          0 month   1 day   2 year   3 name   4 meta
-        recap (textarea) and instagram come after — leave blank for a copied event.
-      */
-      var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
-      setStatus('Filling fields…');
-      newInputs.forEach(function(inp, i) {
-        var key = fieldKeys[i];
-        if (key && ev[key] !== undefined && ev[key] !== null) {
-          setVal(inp, String(ev[key]));
-          log('  set', key, '→', ev[key]);
-        }
-      });
-
-      newBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      setStatus('✅ Done — update date & save!');
-      log('── Complete ──');
+      /* Also try to auto-expand after a short delay in case Decap doesn't do it */
+      setTimeout(function() {
+        if (done) return;
+        var bars = getAllTopBars();
+        if (!bars.length) return;
+        var newBar = bars[bars.length - 1];
+        /* Try clicking the top bar itself first, then its first button */
+        [newBar, newBar.querySelector('button')].forEach(function(el) {
+          if (el && !done) {
+            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          }
+        });
+      }, 800);
     }
 
     /* ── Show/hide panel based on URL hash ── */
