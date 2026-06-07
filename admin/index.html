@@ -22,7 +22,7 @@
 
     <select id="mhs-select" style="
       width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
-      background:rgba(255,255,255,.1);color:#fff;font-size:12px;margin-bottom:10px;
+      background:#fff;color:#1F4E5A;font-size:12px;margin-bottom:10px;font-weight:600;
     ">
       <option value="">— pick an event —</option>
     </select>
@@ -89,16 +89,17 @@
       var prev = sel.value;
       sel.innerHTML = '<option value="">— pick an event —</option>';
       bars.forEach(function(bar, i) {
-        // Summary text is the visible label inside the top bar (not inside our button)
-        var label = '';
-        bar.childNodes.forEach(function(n) {
-          if (n.nodeType === 3) label += n.textContent.trim();      // text node
-          else if (n.tagName && n.tagName !== 'BUTTON') label += n.textContent.trim();
-        });
-        label = label.replace(/\s+/g, ' ').trim() || ('Event ' + (i + 1));
+        // Clone the bar, strip all <button> elements, then read remaining text.
+        // Decap's buttons only contain SVG icons (no visible text), so what's
+        // left is the summary string from the config template.
+        var clone = bar.cloneNode(true);
+        clone.querySelectorAll('button').forEach(function(b){ b.remove(); });
+        var label = clone.textContent.replace(/\s+/g, ' ').trim();
+        if (!label) label = 'Event ' + (i + 1);
+
         var opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = label.substring(0, 55);
+        opt.textContent = label.substring(0, 60);
         sel.appendChild(opt);
       });
       if (prev) sel.value = prev;
