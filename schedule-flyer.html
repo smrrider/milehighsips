@@ -146,7 +146,7 @@
 
     <div id="status"></div>
     <button class="gen-btn" onclick="generate()">✦ Generate Flyer</button>
-    <button class="dl-btn" id="dl-btn" onclick="download()">⬇ Download PNG</button>
+    <button class="dl-btn" id="dl-btn" onclick="download()" id="dl-btn">⬇ Save / Download PNG</button>
     <p class="note">Publish events via the CMS first, then generate the flyer here.</p>
   </div>
 
@@ -535,14 +535,48 @@ async function generate() {
 
 /* ─── Download ─── */
 function download() {
-  const cv = document.getElementById('flyer-canvas');
+  const cv  = document.getElementById('flyer-canvas');
   const val = document.getElementById('month-pick').value;
   const [month, year] = val.split(' ');
   const size = document.getElementById('page-size').value;
-  const a = document.createElement('a');
-  a.download = `milehighsips-${month.toLowerCase()}-${year}-${size}.png`;
-  a.href = cv.toDataURL('image/png');
-  a.click();
+  const filename = `milehighsips-${month.toLowerCase()}-${year}-${size}.png`;
+
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (isIOS) {
+    // iOS Safari ignores the download attribute — open image in a new tab instead.
+    // User long-presses the image → "Save to Photos" / "Add to Photos".
+    const dataUrl = cv.toDataURL('image/png');
+    const html = `<!DOCTYPE html><html>
+<head><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { margin:0; background:#111; min-height:100vh; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; padding:20px; box-sizing:border-box; gap:18px; }
+  p    { color:#fff; font-family:-apple-system,sans-serif; font-size:16px;
+         text-align:center; margin:0; line-height:1.5; }
+  strong { color:#E85A8C; }
+  img  { max-width:100%; border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,.5); }
+</style></head>
+<body>
+  <p>Long-press the image below,<br>then tap <strong>Save to Photos</strong></p>
+  <img src="${dataUrl}" alt="Mile High Sips Flyer">
+</body></html>`;
+    const w = window.open('about:blank', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+    else    { setStatus('Allow pop-ups, or long-press the flyer preview to save.'); }
+  } else {
+    // Desktop + Android: Blob URL download (more reliable than data URLs)
+    cv.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }, 'image/png');
+  }
 }
 
 init();
