@@ -335,20 +335,78 @@
         return all.slice(beforeCount);
       }
 
+      /*
+        Map each config field key → the label text shown in the CMS editor.
+        Labels are defined in admin/config.yml and rendered as <label> elements.
+        We match case-insensitively after stripping optional/hint suffixes.
+      */
+      var keyToLabel = {
+        month: 'month',
+        day:   'day',
+        year:  'year',
+        name:  'event name',
+        meta:  'details'
+      };
+
+      /*
+        Walk up from an input to the first ancestor that contains exactly
+        one text input/textarea (the field wrapper), then read its <label>.
+        Returns lower-cased label text with " (optional…)" suffixes stripped.
+      */
+      function getFieldLabel(inp) {
+        var el = inp.parentElement;
+        for (var depth = 0; depth < 8; depth++) {
+          if (!el || el === document.body) break;
+          var inputs = Array.from(el.querySelectorAll(
+            'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea'
+          ));
+          if (inputs.length === 1 && inputs[0] === inp) {
+            var lbl = el.querySelector('label');
+            if (lbl) {
+              return lbl.textContent.trim().toLowerCase().replace(/\s*\(.*$/i, '').trim();
+            }
+          }
+          el = el.parentElement;
+        }
+        return '';
+      }
+
       function doFill() {
         var newInputs = freshInputs();
         if (newInputs.length < 2) { filling = false; return; }
         done = true;
         obs.disconnect();
         clearTimeout(expireTimer);
-        removeOverlay(); /* ← dismiss the pulsing beacon */
-        log('Filling', Math.min(newInputs.length, fieldKeys.length), 'fields');
-        fieldKeys.forEach(function(key, i) {
-          if (newInputs[i] && ev[key] != null) {
-            setVal(newInputs[i], String(ev[key]));
-            log('  set', key, '→', ev[key]);
+        removeOverlay();
+
+        log('Filling — candidate inputs:', newInputs.length);
+
+        /* Build label → input map so we fill by field name, not DOM position */
+        var labelMap = {};
+        newInputs.forEach(function(inp) {
+          var lbl = getFieldLabel(inp);
+          if (lbl) { labelMap[lbl] = inp; log('  label found:', lbl); }
+        });
+
+        var filled = 0;
+        fieldKeys.forEach(function(key) {
+          var lbl  = keyToLabel[key];
+          var inp  = labelMap[lbl];
+          if (inp && ev[key] != null) {
+            setVal(inp, String(ev[key]));
+            log('  set [' + lbl + '] =', ev[key]);
+            filled++;
           }
         });
+
+        if (filled === 0) {
+          /* Fallback: positional fill (original behaviour) */
+          log('Label match failed, using positional fill');
+          fieldKeys.forEach(function(key, i) {
+            if (newInputs[i] && ev[key] != null) setVal(newInputs[i], String(ev[key]));
+          });
+        }
+
         if (document.activeElement && document.activeElement !== document.body) {
           document.activeElement.blur();
         }
