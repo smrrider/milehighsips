@@ -227,41 +227,21 @@ function dayOfWeek(month, day, year) {
   return new Date(`${month} ${day}, ${year}`).toLocaleDateString('en-US', { weekday: 'long' });
 }
 
-/* ─── Group events by venue within a month ─── */
-function groupByVenue(events, month, year) {
-  const filtered = events.filter(e =>
-    e.month === month && String(e.year) === String(year)
-  );
-  filtered.sort((a, b) => parseInt(a.day) - parseInt(b.day));
-
-  const map = new Map();
-  filtered.forEach(ev => {
-    const key = ev.name;
-    if (!map.has(key)) map.set(key, { name: ev.name, meta: ev.meta || '', dates: [] });
-    map.get(key).dates.push({ day: ev.day, month: ev.month, year: ev.year });
-  });
-
-  return Array.from(map.values()).map(g => {
-    const days = g.dates.map(d => dayOfWeek(d.month, d.day, d.year));
-    const unique = [...new Set(days)];
-    const dateNums = g.dates.map(d => ordinal(d.day)).join(', ');
-
-    let dayLabel, dateLabel;
-    if (unique.length === 1 && g.dates.length > 1) {
-      dayLabel  = unique[0] + 's';              // e.g. "Saturdays"
-      dateLabel = dateNums;                      // e.g. "13th, 20th, 27th"
-    } else if (unique.length === 1) {
-      dayLabel  = unique[0];                    // e.g. "Friday"
-      dateLabel = dateNums;                      // e.g. "5th"
-    } else {
-      dayLabel  = dateNums;                      // mixed — just list dates
-      dateLabel = '';
-    }
-
-    // Split meta into address and time if separated by ·
-    const parts = g.meta.split('·').map(s => s.trim());
-    return { ...g, dayLabel, dateLabel, address: parts[0] || '', time: parts[1] || '' };
-  });
+/* ─── Get individual events for a month, sorted by date ─── */
+function getEvents(events, month, year) {
+  return events
+    .filter(e => e.month === month && String(e.year) === String(year))
+    .sort((a, b) => parseInt(a.day) - parseInt(b.day))
+    .map(ev => {
+      const parts = (ev.meta || '').split('·').map(s => s.trim());
+      return {
+        dayLabel:  dayOfWeek(ev.month, ev.day, ev.year), // e.g. "Saturday"
+        dateLabel: `${ev.month} ${ordinal(ev.day)}`,      // e.g. "June 13th"
+        name:      ev.name,
+        address:   parts[0] || '',
+        time:      parts[1] || '',
+      };
+    });
 }
 
 /* ─── Populate month dropdown ─── */
@@ -382,7 +362,7 @@ async function generate() {
   const showWebsite= document.getElementById('show-website').checked;
   const showGrain  = document.getElementById('show-grain').checked;
 
-  const groups = groupByVenue(window._scheduleData.events, month, year);
+  const groups = getEvents(window._scheduleData.events, month, year);
   if (!groups.length) { setStatus(`No events found for ${month} ${year}`); return; }
 
   setStatus('Rendering…');
@@ -531,7 +511,7 @@ async function generate() {
   cv.style.display = 'block';
   document.getElementById('empty-msg').style.display = 'none';
   document.getElementById('dl-btn').classList.add('show');
-  setStatus(`✓ ${month} ${year} — ${groups.length} event group${groups.length > 1 ? 's' : ''}`);
+  setStatus(`✓ ${month} ${year} — ${groups.length} event${groups.length !== 1 ? 's' : ''}`);
 }
 
 /* ─── Download ─── */
