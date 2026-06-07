@@ -116,7 +116,7 @@
     <div class="menu-head">
       <p class="eyebrow">The Menu</p>
       <h2 class="pink">Our Drinks</h2>
-      <p class="sub price"><span style="font-weight:700;" id="menu-dirty-price">Dirty Soda $6.00</span> · Create Your Own <span id="menu-cyo-price">$5.00 + $0.25 per topping</span></p>
+      <p class="sub price"><span style="font-weight:700;" id="menu-dirty-price">Dirty Soda $6.00</span> · <span style="font-weight:700;" id="menu-brew-price">Cold Brew $8.00</span> · Create Your Own <span id="menu-cyo-price">$5.00 + $0.25 per topping</span></p>
       <div class="menu-legend">
         <span class="leg-soda">🥤 Dirty Soda</span>
         <span class="leg-brew">☕ Cold Brew</span>
@@ -405,6 +405,7 @@
 
   fetch('menu.json' + _v).then(function(r){return r.json();}).then(function(data){
     document.getElementById('menu-dirty-price').textContent = 'Dirty Soda ' + data.dirty_soda_price;
+    document.getElementById('menu-brew-price').textContent  = 'Cold Brew ' + (data.cold_brew_price || '$8.00');
     document.getElementById('menu-cyo-price').textContent   = data.cyo_price_base + ' + ' + data.cyo_price_topping + ' per topping';
     document.getElementById('cyo-price').textContent        = data.cyo_price_base + ' + ' + data.cyo_price_topping + ' per topping';
     document.getElementById('cyo-bases-list').innerHTML  = listItems(data.cyo_bases);

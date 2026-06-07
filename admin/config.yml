@@ -42,6 +42,7 @@ collections:
         file: menu.json
         fields:
           - { label: "Dirty Soda Price", name: dirty_soda_price, widget: string, hint: "e.g. $6.00" }
+          - { label: "Cold Brew Price",  name: cold_brew_price,  widget: string, hint: "e.g. $8.00" }
           - { label: "Create Your Own — Base Price", name: cyo_price_base,    widget: string, hint: "e.g. $5.00" }
           - { label: "Create Your Own — Per Topping", name: cyo_price_topping, widget: string, hint: "e.g. $0.25" }
           - label: Drinks

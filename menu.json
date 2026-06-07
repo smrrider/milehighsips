@@ -1,5 +1,6 @@
 {
   "dirty_soda_price": "$6.00",
+  "cold_brew_price": "$8.00",
   "cyo_price_base": "$5.00",
   "cyo_price_topping": "$0.25",
   "drinks": [
