@@ -318,28 +318,53 @@
       var addBtn = findAddButton();
       if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
-      /*
-        Count-based diff instead of DOM-node identity.
-        React re-renders can replace node references, making the old
-        Set-based approach return stale nodes as "fresh".
-        New events are always appended at the bottom of the list, so
-        slicing from beforeCount reliably captures only the new item's
-        inputs regardless of re-renders.
-      */
-      var beforeCount = getInputs(document.body).length;
       var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
       var done = false, filling = false;
 
-      function freshInputs() {
-        var all = getInputs(document.body);
-        return all.slice(beforeCount);
+      /*
+        Snapshot labels BEFORE clicking Add.
+        After the new event appears, new labels = labels not in this Set.
+        Each label's `for` attribute points directly to its input's id —
+        no positional counting needed.
+      */
+      var beforeLabels = new Set(document.querySelectorAll('label'));
+
+      /* Returns a map of { 'month': inputEl, 'day': inputEl, … }
+         for the newly added event, built from new labels only. */
+      function getNewFieldMap() {
+        var map = {};
+        Array.from(document.querySelectorAll('label'))
+          .filter(function(l) { return !beforeLabels.has(l); })
+          .forEach(function(lbl) {
+            /* Normalise: lowercase, strip "(optional…)" suffixes */
+            var key = lbl.textContent.trim().toLowerCase().replace(/\s*\(.*$/i, '').trim();
+            if (!key) return;
+            var inp = null;
+            /* Standard HTML: label.for → input.id */
+            if (lbl.htmlFor) inp = document.getElementById(lbl.htmlFor);
+            /* Fallback: walk up until we find a sibling/descendant input */
+            if (!inp) {
+              var el = lbl.parentElement;
+              for (var d = 0; d < 5 && el && el !== document.body; d++) {
+                var found = el.querySelector(
+                  'input:not([type=hidden]):not([type=file]):not([type=checkbox]):not([type=radio]), textarea'
+                );
+                if (found) { inp = found; break; }
+                el = el.parentElement;
+              }
+            }
+            if (inp) map[key] = inp;
+          });
+        return map;
       }
 
-      /*
-        Map each config field key → the label text shown in the CMS editor.
-        Labels are defined in admin/config.yml and rendered as <label> elements.
-        We match case-insensitively after stripping optional/hint suffixes.
-      */
+      /* Any new inputs in the DOM (used only to detect when the event expanded) */
+      var beforeInputCount = getInputs(document.body).length;
+      function freshInputs() {
+        return getInputs(document.body).slice(beforeInputCount);
+      }
+
+      /* Config key → normalised label text (lowercase, suffix-stripped) */
       var keyToLabel = {
         month: 'month',
         day:   'day',
@@ -348,78 +373,28 @@
         meta:  'details'
       };
 
-      /*
-        Walk up from an input to the first ancestor that contains exactly
-        one text input/textarea (the field wrapper), then read its <label>.
-        Returns lower-cased label text with " (optional…)" suffixes stripped.
-      */
-      function getFieldLabel(inp) {
-        var el = inp.parentElement;
-        for (var depth = 0; depth < 8; depth++) {
-          if (!el || el === document.body) break;
-          var inputs = Array.from(el.querySelectorAll(
-            'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea'
-          ));
-          if (inputs.length === 1 && inputs[0] === inp) {
-            var lbl = el.querySelector('label');
-            if (lbl) {
-              return lbl.textContent.trim().toLowerCase().replace(/\s*\(.*$/i, '').trim();
-            }
-          }
-          el = el.parentElement;
-        }
-        return '';
-      }
-
       function doFill() {
-        var newInputs = freshInputs();
-        if (newInputs.length < 2) { filling = false; return; }
+        if (freshInputs().length < 2) { filling = false; return; }
         done = true;
         obs.disconnect();
         clearTimeout(expireTimer);
         removeOverlay();
 
-        log('Filling — candidate inputs:', newInputs.length);
-
-        /* Build label → input map so we fill by field name, not DOM position */
-        var labelMap = {};
-        newInputs.forEach(function(inp) {
-          var lbl = getFieldLabel(inp);
-          if (lbl) { labelMap[lbl] = inp; log('  label found:', lbl); }
-        });
+        /* Direct label → input mapping for the new event */
+        var fieldMap = getNewFieldMap();
+        log('fieldMap keys:', Object.keys(fieldMap));
 
         var filled = 0;
-
-        /* Pass 1 — fill every key whose label was found */
-        var matchedInputSet = new Set();
         fieldKeys.forEach(function(key) {
-          var lbl = keyToLabel[key];
-          var inp = labelMap[lbl];
+          var inp = fieldMap[keyToLabel[key]];
           if (inp && ev[key] != null) {
             setVal(inp, String(ev[key]));
-            matchedInputSet.add(inp);
-            log('  label [' + lbl + '] =', ev[key]);
+            log('  set', key, '=', ev[key]);
             filled++;
           }
         });
 
-        /*
-          Pass 2 — any keys that didn't get a label match (e.g. Month when
-          its field wrapper contains sibling inputs that fool the label-finder)
-          are paired positionally with inputs that weren't claimed in Pass 1.
-          Relative document order is preserved, so Month → first unclaimed
-          input, which is the Month input.
-        */
-        var unmatchedKeys   = fieldKeys.filter(function(k) { return !labelMap[keyToLabel[k]]; });
-        var unmatchedInputs = newInputs.filter(function(i) { return !matchedInputSet.has(i); });
-        unmatchedKeys.forEach(function(key, i) {
-          var inp = unmatchedInputs[i];
-          if (inp && ev[key] != null) {
-            setVal(inp, String(ev[key]));
-            log('  positional [' + key + '] =', ev[key]);
-            filled++;
-          }
-        });
+        if (!filled) log('No fields matched — labels in map:', Object.keys(fieldMap));
 
         if (document.activeElement && document.activeElement !== document.body) {
           document.activeElement.blur();
