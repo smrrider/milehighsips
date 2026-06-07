@@ -373,40 +373,52 @@
         var newBar = nowBars[nowBars.length - 1];
         log('New bar detected');
 
-        /* Short pause for React to finish rendering the new item */
+        /* Wait for React to finish re-rendering after the Add */
         setTimeout(function() {
 
           /* If it auto-expanded, fill straight away */
           if (freshInputs().length >= 2) { log('Auto-expanded'); tryFill(); return; }
 
-          /* Scroll so the new item is fully visible — instant so rect is stable immediately */
-          newBar.scrollIntoView({ behavior: 'instant', block: 'center' });
+          /*
+            IMPORTANT: do NOT use the captured `newBar` reference here.
+            React re-renders the whole list when an item is added, which
+            unmounts and remounts DOM nodes.  The saved reference is now
+            detached — getBoundingClientRect() returns all zeros.
+            Re-query the live DOM to get a fresh node.
+          */
+          function getLiveBar() {
+            var bars = getAllTopBars();
+            return bars.length ? bars[bars.length - 1] : null;
+          }
 
-          /* After React finishes painting, measure and overlay the expand arrow.
-             pointer-events:none means the click goes through to React's real button — trusted! */
+          var liveBar = getLiveBar();
+          if (!liveBar) { setStatus('👆 Click › on the new event to auto-fill'); return; }
+
+          /* Scroll the fresh node into view */
+          liveBar.scrollIntoView({ behavior: 'instant', block: 'center' });
+
+          /* One paint frame then measure */
           setTimeout(function() {
-            var btn = newBar.querySelector('button');
-            if (btn) {
-              var r = btn.getBoundingClientRect();
-              /* Sanity check: if rect is near (0,0) the scroll hasn't landed — retry once */
-              if (r.top < 10 && r.left < 10) {
-                newBar.scrollIntoView({ behavior: 'instant', block: 'center' });
-                setTimeout(function() {
-                  var btn2 = newBar.querySelector('button');
-                  if (btn2) showOverlay(btn2);
-                  setStatus('👆 Click the flashing arrow to auto-fill');
-                }, 250);
-              } else {
-                showOverlay(btn); /* our div, React can't touch it */
-                log('Overlay placed at', Math.round(r.left), Math.round(r.top));
-                setStatus('👆 Click the flashing arrow to auto-fill');
-              }
-            } else {
-              setStatus('👆 Click › on the new event to auto-fill');
-            }
-          }, 300);
+            var liveBar2 = getLiveBar(); /* re-query again after scroll */
+            if (!liveBar2) { setStatus('👆 Click › on the new event to auto-fill'); return; }
 
-        }, 400);
+            var btn = liveBar2.querySelector('button');
+            if (!btn) { setStatus('👆 Click › on the new event to auto-fill'); return; }
+
+            var r = btn.getBoundingClientRect();
+            log('Expand btn rect — left:', Math.round(r.left), 'top:', Math.round(r.top), 'w:', Math.round(r.width), 'h:', Math.round(r.height));
+
+            if (r.width < 2 || r.height < 2) {
+              /* Button has no size — element is still off-screen or not painted */
+              setStatus('👆 Click › on the new event to auto-fill');
+              return;
+            }
+
+            showOverlay(btn);
+            setStatus('👆 Click the flashing arrow to auto-fill');
+          }, 150);
+
+        }, 500);
       }, 100);
 
       setTimeout(function() {
