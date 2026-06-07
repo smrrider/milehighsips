@@ -222,27 +222,75 @@
       if (prev !== '') sel.value = prev;
     }
 
-    /* ── Inject pulse-animation CSS once ── */
-    (function() {
+    /* ── Overlay pulse beacon — lives in our DOM, React can't touch it ── */
+    var _overlay = null;
+    var _overlayTarget = null;
+
+    function injectOverlayStyle() {
       if (document.getElementById('mhs-style')) return;
       var s = document.createElement('style');
       s.id = 'mhs-style';
       s.textContent = [
         '@keyframes mhsPulse{',
-        '  0%,100%{box-shadow:0 0 0 3px #E85A8C,0 0 0 6px rgba(232,90,140,.35)}',
-        '  50%{box-shadow:0 0 0 5px #E85A8C,0 0 0 12px rgba(232,90,140,.0)}',
-        '}',
-        '.mhs-pulse{',
-        '  animation:mhsPulse .7s ease-in-out infinite!important;',
-        '  border-radius:4px!important;',
-        '  background:#E85A8C!important;',
-        '  color:#fff!important;',
-        '  transform:scale(1.3)!important;',
-        '  transition:none!important;',
+        '  0%,100%{box-shadow:0 0 0 3px #E85A8C,0 0 0 8px rgba(232,90,140,.5)}',
+        '  50%{box-shadow:0 0 0 6px #E85A8C,0 0 0 16px rgba(232,90,140,0)}',
         '}'
       ].join('');
       document.head.appendChild(s);
-    })();
+    }
+
+    function showOverlay(targetEl) {
+      injectOverlayStyle();
+      removeOverlay();
+      _overlayTarget = targetEl;
+
+      var r = targetEl.getBoundingClientRect();
+      _overlay = document.createElement('div');
+      _overlay.id = 'mhs-overlay';
+
+      /* pointer-events:none means clicks pass THROUGH to the real button below.
+         The user clicks what looks like our overlay — React sees a real user click. */
+      _overlay.style.cssText = [
+        'position:fixed',
+        'left:'   + Math.round(r.left - 4)   + 'px',
+        'top:'    + Math.round(r.top  - 4)   + 'px',
+        'width:'  + Math.round(r.width  + 8) + 'px',
+        'height:' + Math.round(r.height + 8) + 'px',
+        'pointer-events:none',
+        'z-index:999999',
+        'background:#E85A8C',
+        'border-radius:6px',
+        'animation:mhsPulse .65s ease-in-out infinite',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'color:#fff',
+        'font-size:16px',
+        'font-weight:700',
+        'font-family:-apple-system,sans-serif',
+        'cursor:pointer'
+      ].join(';');
+      _overlay.textContent = '▶';
+      document.body.appendChild(_overlay);
+
+      /* Keep overlay aligned if page scrolls */
+      _overlay._scrollHandler = function() {
+        if (!_overlayTarget || !_overlay) return;
+        var rr = _overlayTarget.getBoundingClientRect();
+        _overlay.style.left   = Math.round(rr.left - 4) + 'px';
+        _overlay.style.top    = Math.round(rr.top  - 4) + 'px';
+      };
+      window.addEventListener('scroll', _overlay._scrollHandler, true);
+    }
+
+    function removeOverlay() {
+      if (_overlay) {
+        if (_overlay._scrollHandler) window.removeEventListener('scroll', _overlay._scrollHandler, true);
+        _overlay.remove();
+        _overlay = null;
+      }
+      _overlayTarget = null;
+    }
 
     /* ── Copy routine ── */
     function runCopy() {
@@ -262,14 +310,9 @@
       var beforeInputs = new Set(getInputs(document.body));
       var fieldKeys = ['month', 'day', 'year', 'name', 'meta'];
       var done = false, filling = false;
-      var pulseBtn = null; // the expand button we're highlighting
 
       function freshInputs() {
         return getInputs(document.body).filter(function(inp) { return !beforeInputs.has(inp); });
-      }
-
-      function stopPulse() {
-        if (pulseBtn) { pulseBtn.classList.remove('mhs-pulse'); pulseBtn = null; }
       }
 
       function doFill() {
@@ -278,7 +321,7 @@
         done = true;
         obs.disconnect();
         clearTimeout(expireTimer);
-        stopPulse();
+        removeOverlay(); /* ← dismiss the pulsing beacon */
         log('Filling', Math.min(newInputs.length, fieldKeys.length), 'fields');
         fieldKeys.forEach(function(key, i) {
           if (newInputs[i] && ev[key] != null) {
@@ -311,7 +354,7 @@
       obs.observe(document.body, { childList: true, subtree: true });
 
       var expireTimer = setTimeout(function() {
-        obs.disconnect(); stopPulse();
+        obs.disconnect(); removeOverlay();
         if (!done) setStatus('Timed out — try again');
       }, 60000);
 
@@ -320,7 +363,7 @@
       var before = getAllTopBars().length;
       addBtn.click();
 
-      /* 2. Once the new bar appears, scroll to it and highlight its expand arrow */
+      /* 2. Once the new bar appears, scroll to it and overlay-pulse its expand arrow */
       var waitLoop = setInterval(function() {
         if (done) { clearInterval(waitLoop); return; }
         var nowBars = getAllTopBars();
@@ -336,24 +379,26 @@
           /* If it auto-expanded, fill straight away */
           if (freshInputs().length >= 2) { log('Auto-expanded'); tryFill(); return; }
 
-          /* Scroll so the new item is visible */
+          /* Scroll so the new item is fully visible */
           newBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-          /* Pulse-animate the expand arrow so it's unmissable */
-          var btn = newBar.querySelector('button');
-          if (btn) {
-            pulseBtn = btn;
-            btn.classList.add('mhs-pulse');
-          }
-
-          setStatus('👆 Click the flashing arrow to auto-fill');
+          /* After scroll settles, place a pulsing overlay div over the expand arrow.
+             pointer-events:none means the click goes through to React's real button — trusted! */
+          setTimeout(function() {
+            var btn = newBar.querySelector('button');
+            if (btn) {
+              showOverlay(btn); /* our div, React can't touch it */
+              log('Overlay placed over expand button');
+            }
+            setStatus('👆 Click the flashing arrow to auto-fill');
+          }, 350);
 
         }, 400);
       }, 100);
 
       setTimeout(function() {
         clearInterval(waitLoop);
-        if (!done && !filling) { stopPulse(); setStatus('⚠ Expand the new event to fill it'); }
+        if (!done && !filling) { removeOverlay(); setStatus('⚠ Expand the new event to fill it'); }
       }, 15000);
     }
 
