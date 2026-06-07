@@ -9,23 +9,32 @@
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
   <!--
-    Quick Copy Event panel — fixed at top of page, outside React's DOM tree.
-    Event names come from schedule.json (not DOM scraping) so they're always accurate.
-    Copy fills the new item's inputs from that same JSON data.
+    Quick Copy Event panel — draggable overlay, outside React's DOM tree.
+    Drag the ⠿ handle to reposition. Position saved in localStorage.
+    Event names come from schedule.json. Copy fills new-item fields via
+    MutationObserver the moment they appear in the DOM.
   -->
   <div id="mhs-panel" style="
-    position:fixed; top:12px; right:190px; z-index:99999;
-    background:#1F4E5A; color:#fff; border-radius:7px;
-    padding:6px 10px; box-shadow:0 3px 12px rgba(0,0,0,.45);
+    position:fixed; z-index:99999;
+    background:#1F4E5A; color:#fff; border-radius:8px;
+    padding:7px 10px 7px 6px;
+    box-shadow:0 4px 18px rgba(0,0,0,.5);
     font-family:-apple-system,sans-serif; font-size:12px;
-    display:none; align-items:center; gap:8px;
+    display:none; align-items:center; gap:7px;
+    user-select:none; touch-action:none;
   ">
-    <span style="font-weight:700;opacity:.75;white-space:nowrap;">📋 Copy:</span>
+    <!-- Drag handle -->
+    <span id="mhs-drag" title="Drag to reposition" style="
+      cursor:grab; font-size:16px; opacity:.5; padding:0 4px 0 2px;
+      line-height:1; touch-action:none; flex-shrink:0;
+    ">⠿</span>
+
+    <span style="font-weight:700;opacity:.8;white-space:nowrap;flex-shrink:0;">📋 Copy:</span>
 
     <select id="mhs-select" style="
       padding:4px 6px; border-radius:5px; border:none;
       background:#fff; color:#1F4E5A; font-size:12px; font-weight:600;
-      max-width:220px;
+      max-width:200px; flex-shrink:1;
     ">
       <option value="">— pick event —</option>
     </select>
@@ -33,17 +42,19 @@
     <button id="mhs-copy-btn" style="
       padding:5px 12px; background:#E85A8C; color:#fff; border:none;
       border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;
-      white-space:nowrap;
+      white-space:nowrap; flex-shrink:0;
     ">Copy</button>
 
-    <span id="mhs-status" style="font-size:11px;opacity:.75;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;"></span>
+    <span id="mhs-status" style="
+      font-size:11px; opacity:.75; white-space:nowrap;
+      max-width:160px; overflow:hidden; text-overflow:ellipsis; flex-shrink:1;
+    "></span>
   </div>
 
   <script>
   (function () {
     var LOG = '[MHS]';
     function log() { console.log.apply(console, [LOG].concat(Array.from(arguments))); }
-    function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
     function setStatus(msg) {
       log(msg);
@@ -63,28 +74,106 @@
       } catch(e) { log('setVal error', e); }
     }
 
-    /* All visible text/textarea inputs inside a container */
     function getInputs(container) {
       return Array.from(container.querySelectorAll(
         'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea'
       ));
     }
 
-    /* All Decap list-item top bars (stable Emotion class selector) */
     function getAllTopBars() {
       return Array.from(document.querySelectorAll('[class*="StyledListItemTopBar"]'));
     }
 
-    /* Find the "Add Events" button — always the last Add… button on the page */
     function findAddButton() {
       var all = Array.from(document.querySelectorAll('button')).filter(function(b){
         return /^add\b/i.test(b.textContent.trim()) && b.textContent.trim().length < 30;
       });
-      log('Add buttons found:', all.map(function(b){ return '"' + b.textContent.trim() + '"'; }));
       return all.length ? all[all.length - 1] : null;
     }
 
-    /* ── Load events directly from schedule.json ── */
+    /* ── Drag to reposition ── */
+    function initDrag(panel, handle) {
+      var dragging = false;
+      var ox = 0, oy = 0; // pointer offset within panel
+
+      function clientXY(e) {
+        var src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX, y: src.clientY };
+      }
+
+      function clamp(val, lo, hi) { return Math.max(lo, Math.min(hi, val)); }
+
+      function applyPos(left, top) {
+        panel.style.left = clamp(left, 0, window.innerWidth  - panel.offsetWidth)  + 'px';
+        panel.style.top  = clamp(top,  0, window.innerHeight - panel.offsetHeight) + 'px';
+        panel.style.right  = 'auto';
+        panel.style.bottom = 'auto';
+      }
+
+      function savePos() {
+        try { localStorage.setItem('mhs-pos', panel.style.left + ',' + panel.style.top); } catch(e){}
+      }
+
+      function loadPos() {
+        try {
+          var s = localStorage.getItem('mhs-pos');
+          if (s) {
+            var p = s.split(',');
+            applyPos(parseFloat(p[0]), parseFloat(p[1]));
+            return true;
+          }
+        } catch(e){}
+        return false;
+      }
+
+      /* Set initial position — saved pos or default (top-right near Publish button) */
+      if (!loadPos()) {
+        panel.style.top   = '12px';
+        panel.style.right = '190px'; // stays right-anchored until first drag
+      }
+
+      handle.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        dragging = true;
+        var r = panel.getBoundingClientRect();
+        ox = e.clientX - r.left;
+        oy = e.clientY - r.top;
+        handle.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+
+      handle.addEventListener('touchstart', function(e) {
+        dragging = true;
+        var pt = clientXY(e);
+        var r  = panel.getBoundingClientRect();
+        ox = pt.x - r.left;
+        oy = pt.y - r.top;
+        e.preventDefault();
+      }, { passive: false });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        applyPos(e.clientX - ox, e.clientY - oy);
+      });
+
+      document.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        var pt = clientXY(e);
+        applyPos(pt.x - ox, pt.y - oy);
+        e.preventDefault();
+      }, { passive: false });
+
+      function stopDrag() {
+        if (!dragging) return;
+        dragging = false;
+        handle.style.cursor = 'grab';
+        savePos();
+      }
+      document.addEventListener('mouseup',  stopDrag);
+      document.addEventListener('touchend', stopDrag);
+    }
+
+    /* ── Load events from schedule.json ── */
     var cachedEvents = null;
 
     async function loadEvents() {
@@ -92,7 +181,7 @@
         var resp = await fetch('/schedule.json?_=' + Date.now());
         var data = await resp.json();
         cachedEvents = data.events || [];
-        log('Loaded', cachedEvents.length, 'events from schedule.json');
+        log('Loaded', cachedEvents.length, 'events');
         return cachedEvents;
       } catch(e) {
         log('loadEvents error', e);
@@ -100,14 +189,12 @@
       }
     }
 
-    /* ── Populate dropdown from JSON ── */
+    /* ── Populate dropdown ── */
     async function refreshSelect() {
       var sel = document.getElementById('mhs-select');
       if (!sel) return;
-
       var events = await loadEvents();
       var prev = sel.value;
-
       sel.innerHTML = '<option value="">— pick event —</option>';
       events.forEach(function(ev, i) {
         var label = '';
@@ -116,13 +203,11 @@
         if (ev.year)  label += ', ' + ev.year;
         if (ev.name)  label += ' — ' + ev.name;
         label = label.trim() || ('Event ' + (i + 1));
-
         var opt = document.createElement('option');
         opt.value = i;
         opt.textContent = label.substring(0, 65);
         sel.appendChild(opt);
       });
-
       if (prev !== '') sel.value = prev;
     }
 
@@ -134,7 +219,7 @@
       if (isNaN(idx)) { setStatus('Pick an event first'); return; }
 
       var events = cachedEvents;
-      if (!events || !events[idx]) { setStatus('Reload the page and try again'); return; }
+      if (!events || !events[idx]) { setStatus('Reload page and try again'); return; }
       var ev = events[idx];
       log('Copying:', ev.month, ev.day, ev.year, '—', ev.name);
 
@@ -142,11 +227,9 @@
       if (!addBtn) { setStatus('⚠ Add button not found'); return; }
 
       /*
-        Strategy: snapshot all inputs BEFORE clicking Add, then set up a
-        MutationObserver to watch for new inputs to appear in the DOM.
-        The moment they show up — whether Decap auto-expands the new item
-        or you manually click the › arrow — we fill them immediately.
-        No polling, no timing guesses.
+        Snapshot all current inputs, then watch for new ones via MutationObserver.
+        The moment new inputs appear — whether Decap auto-expands or the user
+        manually clicks › — we fill them immediately.
       */
       var beforeInputs = new Set(getInputs(document.body));
       var fieldKeys    = ['month', 'day', 'year', 'name', 'meta'];
@@ -171,7 +254,6 @@
           }
         });
 
-        /* Scroll to the new item */
         var bars = getAllTopBars();
         if (bars.length) bars[bars.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -179,36 +261,30 @@
         log('── Complete ──');
       }
 
-      /* Watch for any DOM change; fill as soon as new inputs appear */
       var obs = new MutationObserver(tryFill);
       obs.observe(document.body, { childList: true, subtree: true });
 
-      /* Give up after 60 s */
       var expireTimer = setTimeout(function() {
         obs.disconnect();
         if (!done) setStatus('Timed out — try again');
       }, 60000);
 
-      /* Click Add — observer is already watching */
-      setStatus('Added! Click › on the new event at the bottom to expand & fill…');
+      setStatus('Added! Click › on new event to expand & fill…');
       addBtn.click();
 
-      /* Also try to auto-expand after a short delay in case Decap doesn't do it */
+      /* Also attempt a programmatic expand after a short delay */
       setTimeout(function() {
         if (done) return;
         var bars = getAllTopBars();
         if (!bars.length) return;
         var newBar = bars[bars.length - 1];
-        /* Try clicking the top bar itself first, then its first button */
         [newBar, newBar.querySelector('button')].forEach(function(el) {
-          if (el && !done) {
-            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-          }
+          if (el && !done) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
         });
       }, 800);
     }
 
-    /* ── Show/hide panel based on URL hash ── */
+    /* ── Show/hide based on URL hash ── */
     function checkPage() {
       var panel = document.getElementById('mhs-panel');
       if (!panel) return;
@@ -217,19 +293,20 @@
       if (onSchedule) refreshSelect();
     }
 
-    /* ── Wire up the copy button ── */
+    /* ── Boot ── */
+    var panel = document.getElementById('mhs-panel');
+    var handle = document.getElementById('mhs-drag');
+
+    initDrag(panel, handle);
+
     document.getElementById('mhs-copy-btn').addEventListener('click', function() {
-      log('Copy button clicked');
+      log('Copy clicked');
       runCopy();
     });
 
-    /* ── Init after CMS loads ── */
     setTimeout(function() {
       checkPage();
-      window.addEventListener('hashchange', function() {
-        setTimeout(checkPage, 500);
-      });
-      /* Watch for top-level DOM changes only (not subtree) to catch page transitions */
+      window.addEventListener('hashchange', function() { setTimeout(checkPage, 500); });
       var obs = new MutationObserver(function() {
         clearTimeout(window._mhsT);
         window._mhsT = setTimeout(checkPage, 700);
