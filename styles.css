@@ -285,6 +285,8 @@ section .sub { margin-top: 14px; color: var(--ink-75); font-size: 1.05rem; }
 .cyo-bases    { background: rgba(168,212,232,0.3); border: 1px solid rgba(168,212,232,0.6); }
 .cyo-syrups   { background: rgba(244,182,201,0.3); border: 1px solid rgba(244,182,201,0.6); }
 .cyo-addons   { background: rgba(216,199,232,0.3); border: 1px solid rgba(216,199,232,0.6); }
+.cyo-flight-cta { text-align: center; margin-top: 28px; }
+.cyo-flight-sub { color: var(--ink-60); font-size: 0.85rem; margin: 10px 0 0; }
 .upcharge { color: var(--pink); font-weight: 600; }
 
 /* ====== SCHEDULE ====== */

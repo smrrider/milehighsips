@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Flight Deck — Build Your Own Dirty Soda | Mile High Sips</title>
+<meta name="description" content="Mix your own dirty soda in 3D — pick a base, pour your syrups, top it off, and get your boarding pass. Mile High Sips, Denver's dirty soda pop-up." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ===== FLIGHT DECK ===== */
+.fd-hero {
+  text-align: center;
+  padding: 40px 20px 10px;
+  background:
+    radial-gradient(700px 320px at 20% 0%, rgba(168,212,232,0.5), transparent 60%),
+    radial-gradient(700px 320px at 80% 0%, rgba(244,182,201,0.5), transparent 60%),
+    var(--cream);
+}
+.fd-hero h1 {
+  font-family: 'Fredoka', sans-serif; font-weight: 700; color: var(--pink);
+  font-size: clamp(2.2rem, 5vw, 3.4rem); margin: 10px 0 8px; line-height: 1;
+}
+.fd-hero .sub { color: var(--ink-75); max-width: 520px; margin: 0 auto; }
+.fd-beta {
+  display: inline-block; background: var(--teal); color: #fff;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 4px 12px; border-radius: 999px;
+  vertical-align: middle; margin-left: 10px;
+}
+
+.fd-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+  max-width: 1100px; margin: 0 auto; padding: 24px 20px 10px;
+  align-items: start;
+}
+@media (max-width: 880px) { .fd-grid { grid-template-columns: 1fr; gap: 14px; } }
+
+/* --- 3D stage --- */
+.fd-stage {
+  position: relative; border-radius: 32px; overflow: hidden;
+  background:
+    radial-gradient(420px 300px at 30% 20%, rgba(168,212,232,0.55), transparent 70%),
+    radial-gradient(420px 320px at 75% 80%, rgba(244,182,201,0.6), transparent 70%),
+    linear-gradient(180deg, #FDF8F0 0%, #FAEDF1 100%);
+  border: 1px solid rgba(244,182,201,0.5);
+  box-shadow: var(--shadow-soft);
+  height: 520px;
+  touch-action: pan-y;
+}
+@media (max-width: 880px) { .fd-stage { height: 380px; } }
+.fd-stage canvas { display: block; width: 100%; height: 100%; }
+.fd-stage .fd-hint {
+  position: absolute; bottom: 12px; left: 0; right: 0; text-align: center;
+  font-size: 0.74rem; color: var(--ink-60); pointer-events: none;
+}
+.fd-cloudbg {
+  position: absolute; font-size: 36px; opacity: 0.5; pointer-events: none;
+  animation: fdDrift 16s linear infinite;
+}
+@keyframes fdDrift {
+  from { transform: translateX(-70px); }
+  to   { transform: translateX(calc(100vw)); }
+}
+.fd-name-tag {
+  position: absolute; top: 16px; left: 0; right: 0; text-align: center; pointer-events: none;
+}
+.fd-name-tag .nm {
+  font-family: 'Fredoka', sans-serif; font-weight: 600; color: var(--teal);
+  font-size: 1.25rem; background: rgba(255,255,255,0.78); display: inline-block;
+  padding: 6px 20px; border-radius: 999px; border: 1px solid rgba(244,182,201,0.6);
+}
+
+/* --- controls --- */
+.fd-step { margin-bottom: 18px; }
+.fd-step h3 {
+  font-family: 'Fredoka', sans-serif; color: var(--teal); font-weight: 600;
+  font-size: 1.02rem; margin: 0 0 8px;
+}
+.fd-step h3 .lim { font-family: 'Inter', sans-serif; font-size: 0.74rem; color: var(--ink-60); font-weight: 500; }
+.fd-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.fd-chip {
+  border: 1.5px solid rgba(244,182,201,0.7); background: #fff; color: var(--ink);
+  border-radius: 999px; padding: 8px 16px; font-size: 0.86rem; font-weight: 500;
+  transition: transform .12s, background .15s, border-color .15s, box-shadow .15s;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.fd-chip:hover { transform: translateY(-1px); border-color: var(--pink); }
+.fd-chip.on {
+  background: var(--pink); border-color: var(--pink); color: #fff; font-weight: 600;
+  box-shadow: 0 6px 16px -6px rgba(232,90,140,0.55);
+}
+.fd-chip .dot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); }
+.fd-chip.on .dot { border-color: rgba(255,255,255,0.6); }
+.fd-chip .up { font-size: 0.72rem; opacity: 0.7; }
+.fd-chip:disabled { opacity: 0.4; transform: none; cursor: not-allowed; }
+
+.fd-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+
+.fd-fare {
+  display: flex; align-items: baseline; gap: 10px; margin-top: 18px;
+  background: #fff; border: 1px solid rgba(244,182,201,0.5); border-radius: 18px;
+  padding: 12px 18px;
+}
+.fd-fare .lbl { font-size: 0.78rem; color: var(--ink-60); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+.fd-fare .amt { font-family: 'Fredoka', sans-serif; font-weight: 700; color: var(--pink); font-size: 1.7rem; }
+.fd-fare .det { font-size: 0.78rem; color: var(--ink-60); margin-left: auto; text-align: right; }
+
+/* --- boarding pass --- */
+.fd-pass-wrap { max-width: 720px; margin: 26px auto 0; padding: 0 20px 60px; }
+.fd-pass {
+  background: #fff; border-radius: 22px; overflow: hidden;
+  border: 1px solid rgba(244,182,201,0.6); box-shadow: var(--shadow-soft);
+  position: relative;
+}
+.fd-pass-top {
+  background: var(--teal); color: #fff; padding: 13px 22px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: 'Fredoka', sans-serif; font-weight: 600; letter-spacing: 0.06em;
+}
+.fd-pass-top .air { font-size: 0.95rem; }
+.fd-pass-top .bp { font-size: 0.72rem; opacity: 0.85; letter-spacing: 0.18em; }
+.fd-pass-main { padding: 18px 22px 20px; position: relative; }
+.fd-pass-cols {
+  display: grid; grid-template-columns: 1.4fr 1fr 0.7fr 0.7fr; gap: 14px; margin-bottom: 14px;
+}
+@media (max-width: 560px) { .fd-pass-cols { grid-template-columns: 1fr 1fr; } }
+.fd-pc .k { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-60); font-weight: 600; margin-bottom: 2px; }
+.fd-pc .v { font-weight: 600; color: var(--ink); font-size: 0.95rem; }
+.fd-pc input {
+  border: none; border-bottom: 2px dashed rgba(244,182,201,0.9); background: transparent;
+  font: inherit; font-weight: 600; color: var(--ink); width: 100%; padding: 1px 0; outline: none;
+}
+.fd-pass-drink {
+  font-family: 'Fredoka', sans-serif; font-weight: 700; color: var(--pink);
+  font-size: 1.45rem; margin: 2px 0 4px;
+}
+.fd-pass-recipe { color: var(--ink-75); font-size: 0.9rem; margin: 0 0 10px; }
+.fd-pass-foot {
+  border-top: 2px dashed rgba(244,182,201,0.8); padding: 12px 22px 16px;
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+}
+.fd-barcode { display: flex; gap: 2.5px; height: 34px; align-items: stretch; }
+.fd-barcode span { width: 2.5px; background: var(--ink); display: block; }
+.fd-pass-fare { font-family: 'Fredoka', sans-serif; font-weight: 700; color: var(--teal); font-size: 1.25rem; }
+.fd-stamp {
+  position: absolute; right: 18px; bottom: 14px; transform: rotate(-12deg) scale(0);
+  border: 2.5px solid var(--pink); color: var(--pink); border-radius: 8px;
+  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 0.78rem;
+  letter-spacing: 0.1em; padding: 4px 10px; text-transform: uppercase; opacity: 0.85;
+  transition: transform .35s cubic-bezier(.2,1.6,.4,1);
+}
+.fd-stamp.show { transform: rotate(-12deg) scale(1); }
+.fd-pass-note { text-align: center; color: var(--ink-60); font-size: 0.82rem; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <img class="brand-logo" src="assets/logo.png?v=2" alt="Mile High Sips logo" />
+      <span class="brand-name">Mile High Sips</span>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#menu">Menu</a>
+      <a href="index.html#schedule">Schedule</a>
+      <a href="booking.html" class="btn btn-primary btn-sm">Book Us ✈</a>
+    </nav>
+    <a href="index.html" class="btn btn-secondary btn-sm nav-mobile-cta">← Back</a>
+  </div>
+</header>
+
+<section class="fd-hero">
+  <p class="eyebrow">Create Your Own</p>
+  <h1>The Flight Deck <span class="fd-beta">Beta</span></h1>
+  <p class="sub">Mix your dream dirty soda in 3D. Pick a base, pour your syrups, top it off — then grab your boarding pass and order it at our next pop-up.</p>
+</section>
+
+<div class="fd-grid">
+  <div class="fd-stage" id="fd-stage">
+    <div class="fd-name-tag"><span class="nm" id="fd-name">Your Creation</span></div>
+    <div class="fd-hint">drag to spin ✦ it never spills</div>
+  </div>
+
+  <div class="fd-controls">
+    <div class="fd-step">
+      <h3>1 · Choose your base</h3>
+      <div class="fd-chips" id="fd-bases"></div>
+    </div>
+    <div class="fd-step">
+      <h3>2 · Pour your syrups <span class="lim" id="fd-syrup-lim">(up to 3)</span></h3>
+      <div class="fd-chips" id="fd-syrups"></div>
+    </div>
+    <div class="fd-step">
+      <h3>3 · Top it off</h3>
+      <div class="fd-chips" id="fd-addons"></div>
+    </div>
+
+    <div class="fd-fare">
+      <span class="lbl">Fare</span>
+      <span class="amt" id="fd-price">$5.00</span>
+      <span class="det" id="fd-price-det">base only</span>
+    </div>
+
+    <div class="fd-actions">
+      <button class="btn btn-secondary" id="fd-surprise">🎲 Surprise Me</button>
+      <button class="btn btn-secondary" id="fd-reset">↺ Start Over</button>
+    </div>
+  </div>
+</div>
+
+<div class="fd-pass-wrap">
+  <div class="fd-pass" id="fd-pass">
+    <div class="fd-pass-top">
+      <span class="air">✈ MILE HIGH SIPS</span>
+      <span class="bp">BOARDING PASS</span>
+    </div>
+    <div class="fd-pass-main">
+      <div class="fd-stamp" id="fd-stamp">Cleared for takeoff</div>
+      <div class="fd-pass-cols">
+        <div class="fd-pc"><div class="k">Passenger</div><div class="v"><input id="fd-passenger" placeholder="Your name" maxlength="24" /></div></div>
+        <div class="fd-pc"><div class="k">Flight</div><div class="v" id="fd-flight">MHS-5280</div></div>
+        <div class="fd-pc"><div class="k">Gate</div><div class="v" id="fd-gate">B7</div></div>
+        <div class="fd-pc"><div class="k">Seat</div><div class="v" id="fd-seat">1A</div></div>
+      </div>
+      <div class="fd-pass-drink" id="fd-pass-name">Your Creation</div>
+      <p class="fd-pass-recipe" id="fd-pass-recipe">Pick a base to get started.</p>
+    </div>
+    <div class="fd-pass-foot">
+      <div class="fd-barcode" id="fd-barcode"></div>
+      <div class="fd-pass-fare" id="fd-pass-fare">$5.00</div>
+    </div>
+  </div>
+  <p class="fd-pass-note">📸 Screenshot your boarding pass and show it at any Mile High Sips pop-up to order your creation!</p>
+</div>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <img class="brand-logo" src="assets/logo.png?v=2" alt="Mile High Sips logo" />
+      <div>
+        <div class="name">Mile High Sips</div>
+        <div class="tag">Denver, CO · Dirty Soda Pop-Up</div>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="https://instagram.com/milehighsips" target="_blank" rel="noopener">Instagram</a>
+      <a href="booking.html">Book</a>
+    </div>
+  </div>
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ================= DATA ================= */
+
+var COLOR_TABLE = [
+  [/coke zero/i,        0x241813],
+  [/coke/i,             0x3B2010],
+  [/sprite/i,           0xD9F0C4],
+  [/dr\.?\s?pepper/i,   0x4A1A20],
+  [/cream soda/i,       0xF2C474],
+  [/pink|alani/i,       0xF59FC0],
+  [/strawberry/i,       0xE8484F],
+  [/grenadine/i,        0xB3122E],
+  [/french vanilla/i,   0xEFD9A8],
+  [/vanilla/i,          0xF5E6C2],
+  [/blue raspberry/i,   0x3F8FDD],
+  [/raspberry/i,        0xD6336C],
+  [/peach/i,            0xF5A05F],
+  [/coconut/i,          0xF2EFE4],
+  [/lime/i,             0xA7D653],
+  [/caramel/i,          0xC97B2E],
+  [/white chocolate/i,  0xF4EAD2],
+  [/pineapple/i,        0xF6D95E]
+];
+function colorFor(name) {
+  for (var i = 0; i < COLOR_TABLE.length; i++) {
+    if (COLOR_TABLE[i][0].test(name)) return COLOR_TABLE[i][1];
+  }
+  return 0xE85A8C;
+}
+function isFoam(name)  { return /cold foam/i.test(name); }
+function isCloud(name) { return /cotton candy/i.test(name); }
+function isCream(name) { return /half|creme|cream/i.test(name) && !isFoam(name); }
+function creamColor(name) {
+  if (/coconut/i.test(name)) return 0xFAF6EC;
+  if (/pineapple/i.test(name)) return 0xF6D95E;
+  return 0xFFF3E0;
+}
+
+var NAMES_A = ['Jetstream','Layover','First-Class','Red-Eye','Mile High','Cruising Altitude','Standby','Gate B','Window Seat','Turbulence','Tailwind','Wingtip'];
+var NAMES_B = ['Sweetheart','Splash','Daydream','Cloudburst','Refresher','Royale','Fizz','Sunset','Sipper','Cruiser','Crush','Glow'];
+
+function hashStr(s) {
+  var h = 5381;
+  for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+/* ================= STATE ================= */
+
+var MENU = { bases: [], syrups: [], addons: [], basePrice: 5, topPrice: 0.25 };
+var state = { base: null, syrups: [], addons: [] };
+var MAX_SYRUPS = 3;
+
+/* ================= THREE SCENE ================= */
+
+var stage = document.getElementById('fd-stage');
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+camera.position.set(0, 2.6, 7.6);
+
+var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+
+function sizeRenderer() {
+  var w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+sizeRenderer();
+window.addEventListener('resize', sizeRenderer);
+
+var controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.7, 0);
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.4;
+controls.minPolarAngle = 0.85;
+controls.maxPolarAngle = 1.62;
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+scene.add(new THREE.HemisphereLight(0xFFF8EE, 0xF4B6C9, 1.05));
+var sun = new THREE.DirectionalLight(0xffffff, 1.5);
+sun.position.set(4, 7, 5);
+scene.add(sun);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+
+/* cup profile: bottom r=0.80 at y=0, top r=1.15 at y=3 */
+var CUP_H = 3, R_BOT = 0.80, R_TOP = 1.15, INNER = 0.94;
+function rAt(y) { return (R_BOT + (R_TOP - R_BOT) * (y / CUP_H)) * INNER; }
+
+var cupGroup = new THREE.Group();
+scene.add(cupGroup);
+
+/* cup walls */
+var cupMat = new THREE.MeshPhysicalMaterial({
+  color: 0xffffff, transparent: true, opacity: 0.16,
+  roughness: 0.06, metalness: 0, side: THREE.DoubleSide
+});
+var cup = new THREE.Mesh(new THREE.CylinderGeometry(R_TOP, R_BOT, CUP_H, 48, 1, true), cupMat);
+cup.position.y = CUP_H / 2;
+cupGroup.add(cup);
+
+/* cup bottom */
+var cupBot = new THREE.Mesh(new THREE.CircleGeometry(R_BOT, 48), cupMat);
+cupBot.rotation.x = -Math.PI / 2;
+cupBot.position.y = 0.01;
+cupGroup.add(cupBot);
+
+/* rim */
+var rim = new THREE.Mesh(
+  new THREE.TorusGeometry(R_TOP, 0.045, 12, 48),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 })
+);
+rim.rotation.x = Math.PI / 2;
+rim.position.y = CUP_H;
+cupGroup.add(rim);
+
+/* straw */
+var straw = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.075, 0.075, 4.5, 16),
+  new THREE.MeshStandardMaterial({ color: 0xE85A8C, roughness: 0.35 })
+);
+straw.position.set(0.42, 2.4, 0);
+straw.rotation.z = -0.16;
+cupGroup.add(straw);
+
+/* dynamic groups */
+var liquidGroup = new THREE.Group(); cupGroup.add(liquidGroup);
+var foamGroup   = new THREE.Group(); cupGroup.add(foamGroup);
+var cloudGroup  = new THREE.Group(); cupGroup.add(cloudGroup);
+var iceGroup    = new THREE.Group(); cupGroup.add(iceGroup);
+var fxGroup     = new THREE.Group(); cupGroup.add(fxGroup);
+
+/* shadow disc */
+var shadow = new THREE.Mesh(
+  new THREE.CircleGeometry(1.5, 40),
+  new THREE.MeshBasicMaterial({ color: 0xE85A8C, transparent: true, opacity: 0.10 })
+);
+shadow.rotation.x = -Math.PI / 2;
+shadow.position.y = -0.02;
+scene.add(shadow);
+
+/* ---- tween helper ---- */
+var tweens = [];
+function tween(dur, fn, done) { tweens.push({ t0: performance.now(), dur: dur, fn: fn, done: done }); }
+function ease(p) { return p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2) / 2; }
+function stepTweens(now) {
+  for (var i = tweens.length - 1; i >= 0; i--) {
+    var t = tweens[i];
+    var p = Math.min(1, (now - t.t0) / t.dur);
+    t.fn(ease(p));
+    if (p >= 1) { tweens.splice(i, 1); if (t.done) t.done(); }
+  }
+}
+
+/* ---- liquid layers ---- */
+var FILL_BASE_Y = 0.10;
+var fillTop = FILL_BASE_Y;
+
+function layerMesh(yB, yT, color, opacity) {
+  var h = yT - yB;
+  var geo = new THREE.CylinderGeometry(rAt(yT), rAt(yB), h, 40);
+  var mat = new THREE.MeshStandardMaterial({
+    color: color, roughness: 0.18, transparent: true, opacity: opacity == null ? 0.96 : opacity
+  });
+  var m = new THREE.Mesh(geo, mat);
+  m.position.y = yB + h / 2;
+  return m;
+}
+
+function clearGroup(g) {
+  while (g.children.length) {
+    var c = g.children.pop();
+    if (c.geometry) c.geometry.dispose();
+    if (c.material) c.material.dispose();
+    g.remove(c);
+  }
+}
+
+function computeLayers() {
+  if (!state.base) return [];
+  var layers = [];
+  var syrupH = 0.42, creamH = 0.17, totalFill = 2.35;
+  var creams = state.addons.filter(function(a){ return isCream(a) || /pineapple/i.test(a); });
+  var baseH = totalFill - state.syrups.length * syrupH - creams.length * creamH;
+  var y = FILL_BASE_Y;
+  layers.push({ yB: y, yT: y + baseH, color: colorFor(state.base), kind: 'base' });
+  y += baseH;
+  state.syrups.forEach(function(s) {
+    layers.push({ yB: y, yT: y + syrupH, color: colorFor(s), kind: 'syrup', name: s });
+    y += syrupH;
+  });
+  creams.forEach(function(c) {
+    layers.push({ yB: y, yT: y + creamH, color: creamColor(c), kind: 'cream', name: c });
+    y += creamH;
+  });
+  fillTop = y;
+  return layers;
+}
+
+function rebuildLiquid(animateLast) {
+  clearGroup(liquidGroup);
+  var layers = computeLayers();
+  layers.forEach(function(L, i) {
+    var m = layerMesh(L.yB, L.yT, L.color);
+    liquidGroup.add(m);
+    if (animateLast && i === layers.length - 1) {
+      var h = L.yT - L.yB;
+      m.scale.y = 0.001;
+      m.position.y = L.yB;
+      tween(500, function(p) {
+        m.scale.y = Math.max(0.001, p);
+        m.position.y = L.yB + (h * p) / 2;
+      });
+    }
+  });
+  rebuildFoam();
+  rebuildIce();
+  rebuildBubbles();
+}
+
+/* ---- foam + cloud ---- */
+function rebuildFoam() {
+  clearGroup(foamGroup);
+  clearGroup(cloudGroup);
+  var foams = state.addons.filter(isFoam);
+  if (foams.length && state.base) {
+    var pinkFoam = foams.some(isCloud);
+    var fc = pinkFoam ? 0xF9D2E2 : 0xFFF8EC;
+    var r = rAt(fillTop) * 1.02;
+    var blob = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 32, 20),
+      new THREE.MeshStandardMaterial({ color: fc, roughness: 0.55 })
+    );
+    blob.scale.set(1, 0.42, 1);
+    blob.position.y = fillTop + 0.06;
+    foamGroup.add(blob);
+    for (var i = 0; i < 5; i++) {
+      var a = (i / 5) * Math.PI * 2;
+      var b = new THREE.Mesh(
+        new THREE.SphereGeometry(0.16 + Math.random() * 0.08, 16, 12),
+        new THREE.MeshStandardMaterial({ color: fc, roughness: 0.55 })
+      );
+      b.position.set(Math.cos(a) * r * 0.55, fillTop + 0.22, Math.sin(a) * r * 0.55);
+      foamGroup.add(b);
+    }
+  }
+  if (state.addons.some(isCloud) && state.base) {
+    var cg = new THREE.Group();
+    for (var j = 0; j < 7; j++) {
+      var cs = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22 + Math.random() * 0.16, 16, 12),
+        new THREE.MeshStandardMaterial({ color: j % 2 ? 0xFBE3ED : 0xFFFFFF, roughness: 0.7 })
+      );
+      cs.position.set((Math.random() - 0.5) * 1.1, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.7);
+      cg.add(cs);
+    }
+    cg.position.y = CUP_H + 1.15;
+    cloudGroup.add(cg);
+  }
+}
+
+/* ---- ice ---- */
+function rebuildIce() {
+  clearGroup(iceGroup);
+  if (!state.base) return;
+  var iceMat = new THREE.MeshPhysicalMaterial({
+    color: 0xEFF8FF, transparent: true, opacity: 0.55, roughness: 0.05
+  });
+  for (var i = 0; i < 3; i++) {
+    var s = 0.34 + Math.random() * 0.12;
+    var cube = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), iceMat.clone());
+    var a = Math.random() * Math.PI * 2;
+    var rr = rAt(fillTop) * 0.45;
+    cube.position.set(Math.cos(a) * rr, fillTop - 0.18 - Math.random() * 0.2, Math.sin(a) * rr);
+    cube.rotation.set(Math.random(), Math.random(), Math.random());
+    cube.userData.bobOff = Math.random() * Math.PI * 2;
+    cube.userData.baseY = cube.position.y;
+    iceGroup.add(cube);
+  }
+}
+
+/* ---- bubbles ---- */
+var bubbleGroup = new THREE.Group();
+cupGroup.add(bubbleGroup);
+function rebuildBubbles() {
+  clearGroup(bubbleGroup);
+  if (!state.base) return;
+  for (var i = 0; i < 18; i++) {
+    var b = new THREE.Mesh(
+      new THREE.SphereGeometry(0.025 + Math.random() * 0.035, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 })
+    );
+    var a = Math.random() * Math.PI * 2;
+    var rr = Math.random() * rAt(fillTop) * 0.7;
+    b.position.set(Math.cos(a) * rr, FILL_BASE_Y + Math.random() * (fillTop - FILL_BASE_Y), Math.sin(a) * rr);
+    b.userData.speed = 0.15 + Math.random() * 0.35;
+    bubbleGroup.add(b);
+  }
+}
+
+/* ---- pour FX ---- */
+function pourFX(color, done) {
+  var topY = 4.6;
+  var H = topY - fillTop;
+  var stream = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.07, 0.1, H, 12),
+    new THREE.MeshStandardMaterial({ color: color, transparent: true, opacity: 0.95, roughness: 0.2 })
+  );
+  stream.scale.y = 0.001;
+  stream.position.set(0, topY, 0);
+  fxGroup.add(stream);
+  tween(300, function(p) {
+    stream.scale.y = Math.max(0.001, p);
+    stream.position.y = topY - (H * p) / 2;
+  }, function() {
+    /* splash ripples */
+    var ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.12, 0.03, 8, 24),
+      new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = fillTop + 0.02;
+    fxGroup.add(ring);
+    tween(450, function(p) {
+      ring.scale.setScalar(1 + p * 4);
+      ring.material.opacity = 0.8 * (1 - p);
+    }, function() { fxGroup.remove(ring); ring.geometry.dispose(); ring.material.dispose(); });
+
+    if (done) done();
+    setTimeout(function() {
+      tween(280, function(p) { stream.material.opacity = 0.95 * (1 - p); },
+        function() { fxGroup.remove(stream); stream.geometry.dispose(); stream.material.dispose(); });
+    }, 380);
+  });
+}
+
+/* ---- animate loop ---- */
+var clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  var now = performance.now();
+  var t = clock.getElapsedTime();
+  stepTweens(now);
+  controls.update();
+
+  iceGroup.children.forEach(function(c) {
+    c.position.y = c.userData.baseY + Math.sin(t * 1.4 + c.userData.bobOff) * 0.035;
+    c.rotation.y += 0.002;
+  });
+  bubbleGroup.children.forEach(function(b) {
+    b.position.y += b.userData.speed * 0.016;
+    if (b.position.y > fillTop - 0.05) b.position.y = FILL_BASE_Y + 0.1;
+  });
+  cloudGroup.children.forEach(function(cg) {
+    cg.position.y = CUP_H + 1.15 + Math.sin(t * 1.1) * 0.1;
+    cg.rotation.y = t * 0.25;
+  });
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ================= UI ================= */
+
+function money(n) { return '$' + n.toFixed(2); }
+function parsePrice(s, fallback) {
+  var v = parseFloat(String(s || '').replace(/[^0-9.]/g, ''));
+  return isNaN(v) ? fallback : v;
+}
+
+function drinkName() {
+  if (!state.base) return 'Your Creation';
+  var toppings = state.syrups.length + state.addons.length;
+  if (!toppings) return 'The Plain ' + state.base;
+  var h = hashStr(state.base + '|' + state.syrups.join(',') + '|' + state.addons.join(','));
+  return 'The ' + NAMES_A[h % NAMES_A.length] + ' ' + NAMES_B[(h >>> 8) % NAMES_B.length];
+}
+
+function updateUI() {
+  var toppings = state.syrups.length + state.addons.length;
+  var price = state.base ? MENU.basePrice + toppings * MENU.topPrice : MENU.basePrice;
+  document.getElementById('fd-price').textContent = money(price);
+  document.getElementById('fd-price-det').textContent = state.base
+    ? (toppings ? toppings + ' topping' + (toppings > 1 ? 's' : '') + ' × ' + money(MENU.topPrice) : 'base only')
+    : 'pick a base';
+
+  var nm = drinkName();
+  document.getElementById('fd-name').textContent = nm;
+  document.getElementById('fd-pass-name').textContent = nm;
+
+  var parts = [];
+  if (state.base) parts.push(state.base);
+  state.syrups.forEach(function(s) { parts.push(s + ' syrup'); });
+  state.addons.forEach(function(a) { parts.push(a); });
+  document.getElementById('fd-pass-recipe').textContent = parts.length
+    ? parts.join(' · ') : 'Pick a base to get started.';
+  document.getElementById('fd-pass-fare').textContent = money(price);
+
+  var h = hashStr(nm);
+  document.getElementById('fd-flight').textContent = 'MHS-' + (5000 + (h % 999));
+  document.getElementById('fd-gate').textContent = String.fromCharCode(65 + (h % 5)) + (1 + ((h >>> 4) % 12));
+  document.getElementById('fd-seat').textContent = (1 + ((h >>> 6) % 20)) + String.fromCharCode(65 + ((h >>> 9) % 6));
+
+  document.getElementById('fd-stamp').classList.toggle('show', !!state.base && toppings > 0);
+  renderChips();
+  renderBarcode(h);
+}
+
+function renderBarcode(h) {
+  var bc = document.getElementById('fd-barcode');
+  bc.innerHTML = '';
+  for (var i = 0; i < 36; i++) {
+    var s = document.createElement('span');
+    var bit = (h >>> (i % 28)) & 1;
+    s.style.width = bit ? '3.5px' : '1.8px';
+    s.style.opacity = ((h >>> ((i + 7) % 28)) & 1) ? '1' : '0.45';
+    bc.appendChild(s);
+  }
+}
+
+function chipEl(label, on, colorHex, upcharge, disabled) {
+  var b = document.createElement('button');
+  b.className = 'fd-chip' + (on ? ' on' : '');
+  if (disabled) b.disabled = true;
+  var dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = '#' + ('000000' + colorHex.toString(16)).slice(-6);
+  b.appendChild(dot);
+  b.appendChild(document.createTextNode(label));
+  if (upcharge) {
+    var u = document.createElement('span');
+    u.className = 'up';
+    u.textContent = upcharge;
+    b.appendChild(u);
+  }
+  return b;
+}
+
+function renderChips() {
+  var bd = document.getElementById('fd-bases'); bd.innerHTML = '';
+  MENU.bases.forEach(function(name) {
+    var clean = name.replace(/\s*\(\+\$[^)]*\)\s*/, '').trim();
+    var up = (name.match(/\(\+\$[^)]*\)/) || [null])[0];
+    var on = state.base === clean;
+    var c = chipEl(clean, on, colorFor(clean), up);
+    c.onclick = function() {
+      var first = !state.base;
+      state.base = clean;
+      rebuildLiquid(first);
+      updateUI();
+    };
+    bd.appendChild(c);
+  });
+
+  var sd = document.getElementById('fd-syrups'); sd.innerHTML = '';
+  MENU.syrups.forEach(function(name) {
+    var on = state.syrups.indexOf(name) !== -1;
+    var full = !on && state.syrups.length >= MAX_SYRUPS;
+    var c = chipEl(name, on, colorFor(name), null, full || !state.base);
+    c.onclick = function() {
+      if (on) {
+        state.syrups = state.syrups.filter(function(x){ return x !== name; });
+        rebuildLiquid(false);
+        updateUI();
+      } else if (state.syrups.length < MAX_SYRUPS) {
+        state.syrups.push(name);
+        pourFX(colorFor(name), function() { rebuildLiquid(true); });
+        updateUI();
+      }
+    };
+    sd.appendChild(c);
+  });
+
+  var ad = document.getElementById('fd-addons'); ad.innerHTML = '';
+  MENU.addons.forEach(function(name) {
+    var on = state.addons.indexOf(name) !== -1;
+    var c = chipEl(name, on, isFoam(name) ? 0xFFF3E0 : creamColor(name), null, !state.base);
+    c.onclick = function() {
+      if (on) state.addons = state.addons.filter(function(x){ return x !== name; });
+      else state.addons.push(name);
+      rebuildLiquid(!on && (isCream(name) || /pineapple/i.test(name)));
+      updateUI();
+    };
+    ad.appendChild(c);
+  });
+}
+
+/* surprise + reset */
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+document.getElementById('fd-surprise').onclick = function() {
+  state.base = pick(MENU.bases).replace(/\s*\(\+\$[^)]*\)\s*/, '').trim();
+  state.syrups = [];
+  state.addons = [];
+  var pool = MENU.syrups.slice();
+  var n = 2 + Math.floor(Math.random() * 2);
+  for (var i = 0; i < n && pool.length; i++) {
+    state.syrups.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  if (Math.random() > 0.35) state.addons.push(pick(MENU.addons));
+  rebuildLiquid(false);
+  pourFX(colorFor(state.syrups[state.syrups.length - 1] || state.base));
+  updateUI();
+};
+document.getElementById('fd-reset').onclick = function() {
+  state = { base: null, syrups: [], addons: [] };
+  clearGroup(liquidGroup); clearGroup(foamGroup); clearGroup(cloudGroup);
+  clearGroup(iceGroup); clearGroup(bubbleGroup);
+  fillTop = FILL_BASE_Y;
+  updateUI();
+};
+
+/* ================= LOAD MENU ================= */
+fetch('menu.json?v=' + Date.now()).then(function(r){ return r.json(); }).then(function(data) {
+  MENU.bases  = data.cyo_bases  || [];
+  MENU.syrups = data.cyo_syrups || [];
+  MENU.addons = data.cyo_addons || [];
+  MENU.basePrice = parsePrice(data.cyo_price_base, 5);
+  MENU.topPrice  = parsePrice(data.cyo_price_topping, 0.25);
+  updateUI();
+}).catch(function() {
+  MENU.bases  = ['Coke','Sprite','Dr Pepper','Cream Soda'];
+  MENU.syrups = ['Strawberry','Vanilla','Coconut','Lime'];
+  MENU.addons = ['Half & Half','Vanilla Cold Foam'];
+  updateUI();
+});
+</script>
+
+</body>
+</html>
