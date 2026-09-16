@@ -1,8 +1,8 @@
 {
-  "dirty_soda_price": "$6.00",
-  "cold_brew_price": "$8.00",
-  "cyo_price_base": "$5.00",
-  "cyo_price_topping": "$0.25",
+  "dirty_soda_price": "6",
+  "cold_brew_price": "8",
+  "cyo_price_base": "5",
+  "cyo_price_topping": ".25",
   "drinks": [
     {
       "name": "Jumpseat Gossip",
@@ -30,11 +30,6 @@
       "category": "dirty_soda"
     },
     {
-      "name": "Jet Stream Splash",
-      "description": "Sprite, coconut syrup, splash of pineapple juice, half & half",
-      "category": "dirty_soda"
-    },
-    {
       "name": "Red-Eye Refresher",
       "description": "Dr Pepper, raspberry syrup, vanilla syrup, half & half",
       "category": "dirty_soda"
@@ -49,11 +44,6 @@
       "description": "Dr Pepper, grenadine, coconut creme, coconut syrup, vanilla cold foam",
       "category": "dirty_soda",
       "drink_image": "assets/milehigh.PNG"
-    },
-    {
-      "name": "Jet Lag Juice",
-      "description": "Pink Alani slush (+$2), vanilla syrup, grenadine, coconut creme",
-      "category": "dirty_soda"
     },
     {
       "name": "Frequent Flyer",
@@ -82,21 +72,6 @@
       "description": "Cream soda, peach syrup, blue raspberry syrup, coconut creme",
       "category": "dirty_soda",
       "full_width": true
-    },
-    {
-      "category": "cold_brew",
-      "signature": false,
-      "full_width": false,
-      "name": "Caramel Altitude",
-      "description": "Cold brew, vanilla syrup, caramel syrup, vanilla sweet cream, caramel drizzle",
-      "drink_image": "assets/46885dea-0bfd-4ea1-96a5-469713ff25d2.png"
-    },
-    {
-      "category": "cold_brew",
-      "signature": false,
-      "full_width": false,
-      "name": "Pink Altitude ",
-      "description": "Cold brew, white chocolate syrup, raspberry syrup, half & half, vanilla cold foam"
     }
   ],
   "cyo_bases": [
